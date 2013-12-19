@@ -1,0 +1,31 @@
+<div class="container">
+
+  <div class="page-header">
+    <h1>
+      Skype-alt
+
+      {{#if currentUser}}
+        <small>{{currentUser}}</small>
+      {{/if}}
+    </h1>
+  </div>
+
+  {{#if currentUser}}
+    <button {{action 'logout'}} class="btn">Logout</button>
+  {{else}}
+    <button {{action 'login'}} class="btn">Login with Mozilla Persona</button>
+  {{/if}}
+
+  <hr>
+
+  <div class="row">
+    <div class="col-md-4">
+      {{render 'contacts'}}
+    </div>
+
+    <div class="col-md-8">
+      {{outlet}}
+    </div>
+  </div>
+
+</div>

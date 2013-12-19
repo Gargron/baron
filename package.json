@@ -1,0 +1,11 @@
+{
+  "name": "skype-alt",
+  "description": "In-browser Skype alternative based on WebRTC",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "socket.io": "0.9.x",
+    "express": "3.x",
+    "request": "2.x"
+  }
+}
