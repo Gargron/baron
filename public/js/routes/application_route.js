@@ -2,8 +2,21 @@ var ApplicationRoute = Ember.Route.extend({
   setupController: function (controller) {
     var self = this;
 
+    navigator.mozGetUserMedia({ video: true, audio: false }, function (stream) {
+      var contacts = self.controllerFor('contacts').get('content');
+      controller.set('stream', stream);
+
+      if (typeof contacts !== 'undefined') {
+        contacts.forEach(function (contact) {
+          contact.setOutgoingStream(stream);
+        });
+      }
+    }, function (err) {
+      console.error(err);
+    });
+
     App.getJSON('/auth/current').then(function (auth) {
-      self.controller.set('currentUser', auth.email);
+      controller.set('currentUser', auth.email);
       self._loadPersona();
       self._loadContacts();
       self._bindSignals();
@@ -44,7 +57,13 @@ var ApplicationRoute = Ember.Route.extend({
     App.getJSON('/list').then(function (list) {
       list.forEach(function (_contact) {
         var contact = App.Contact.create(_contact);
+
         contact.set('signallingChannel', self.controller.get('connection'));
+
+        if (self.controller.get('stream') != null) {
+          contact.setOutgoingStream(self.controller.get('stream'));
+        }
+
         self.controllerFor('contacts').get('content').pushObject(contact);
       });
     }, function (err) {
@@ -57,13 +76,15 @@ var ApplicationRoute = Ember.Route.extend({
       this.controller.get('connection').close();
     }
 
-    this.controller.set('connection', io.connect('http://localhost:3000'));
+    this.controller.set('connection', io.connect('http://' + window.location.host));
 
     var connection = this.controller.get('connection'),
       self = this;
 
     connection.on('signal', function (signal) {
-      var target = self.controllerFor('contacts').get('content').findBy('email', signal.to);
+      var target = self.controllerFor('contacts').get('content').findBy('email', signal.from);
+
+      console.log('Signal received', signal, target);
 
       if (typeof target === 'undefined') {
         return;

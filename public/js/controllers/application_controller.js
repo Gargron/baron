@@ -1,6 +1,7 @@
 var ApplicationController = Ember.Controller.extend({
   currentUser: null,
   connection: null,
+  stream: null,
 
   actions: {
     login: function () {

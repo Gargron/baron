@@ -4,6 +4,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   peer: null,
   dataChannel: null,
   signallingChannel: null,
+  remoteStream: null,
 
   init: function () {
     var self = this,
@@ -20,29 +21,32 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       });
 
     connection.onicecandidate = function (e) {
-      if (e.candidate) {
-        console.log('Ice candidate found');
+      console.log('Ice candidate generated', e);
 
+      if (e.candidate) {
         self.get('signallingChannel').emit('signal', {
           to: self.get('email'),
           type: 'ice',
-          payload: e.candidate.candidate
+          payload: e.candidate
         });
       }
     };
 
     connection.onnegotiationneeded = function () {
       console.log('Negotiation needed');
-      connection.createOffer(self._onCreateOffer, null, {});
+      connection.createOffer(function (offer) {
+        self._onCreateOffer(offer);
+      }, self._handleFailure, {});
     };
 
     connection.ondatachannel = function (e) {
+      console.log('Data channel available', e);
       self.set('dataChannel', e.channel);
       self._bindDataEvents();
     };
 
-    connection.onaddstream = function (stream) {
-      self.trigger('streamAdded', stream);
+    connection.onaddstream = function (e) {
+      self.trigger('streamAdded', e.stream);
     };
 
     connection.onremovestream = function () {
@@ -53,10 +57,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   },
 
   addIceCandidate: function (candidate) {
-    this.get('peer').addIceCandidate(new mozRTCIceCandidate({ candidate: candidate }));
+    this.get('peer').addIceCandidate(new mozRTCIceCandidate(candidate));
   },
 
   setOutgoingStream: function (stream) {
+    console.log('Adding stream', stream);
     this.get('peer').addStream(stream);
   },
 
@@ -66,40 +71,64 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   },
 
   pushMessage: function (msg) {
+    if (this.get('dataChannel') === null) {
+      return;
+    }
+
     this.get('dataChannel').send(msg);
   },
 
   prepareCall: function () {
-    var connection = this.get('peer');
-    connection.createOffer(this._onCreateOffer, null, {});
+    var self = this,
+      connection = this.get('peer');
+
+    connection.createOffer(function (offer) {
+      self._onCreateOffer(offer);
+    }, this._handleFailure, {});
   },
 
   acceptCall: function (offer) {
-    var connection = this.get('peer');
+    var self = this,
+      connection = this.get('peer');
 
-    connection.setRemoteDescription(new mozRTCSessionDescription(offer));
+    connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
+      connection.createAnswer(function (answer) {
+        connection.setLocalDescription(answer);
 
-    connection.createAnswer(function (answer) {
-      connection.setLocalDescription(answer);
-      self.get('signallingChannel').emit('signal', {
-        to: self.get('email'),
-        type: 'answer',
-        payload: answer
-      });
-    }, null, {});
+        self.get('signallingChannel').emit('signal', {
+          to: self.get('email'),
+          type: 'answer',
+          payload: answer
+        });
+      }, self._handleFailure, {});
+    }, this._handleFailure);
   },
 
   finalizeCall: function (answer) {
-    this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer));
+    var self = this;
+
+    this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {
+      self.trigger('connectionEstablished');
+    });
   },
 
   _onCreateOffer: function (offer) {
-    connection.setLocalDescription(offer);
-    self.get('signallingChannel').emit('signal', {
-      to: self.get('email'),
-      type: 'offer',
-      payload: offer
-    });
+    var self = this,
+      connection = this.get('peer');
+
+    console.log('Offer created', offer);
+
+    connection.setLocalDescription(offer, function () {
+      self.get('signallingChannel').emit('signal', {
+        to: self.get('email'),
+        type: 'offer',
+        payload: offer
+      });
+    }, this._handleFailure);
+  },
+
+  _handleFailure: function (err) {
+    console.error(err);
   },
 
   _bindDataEvents: function () {

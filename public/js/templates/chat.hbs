@@ -16,6 +16,9 @@
     </form>
   </div>
 
+  <video {{bind-attr src='remoteStream'}} autoplay></video>
+  <video {{bind-attr src='localStream'}} autoplay width="200"></video>
+
   <table class="table">
     <tbody>
       {{#each message in messages}}

@@ -1,4 +1,5 @@
 var ContactsController = Ember.ArrayController.extend({
+  needs: ['application'],
   newContact: null,
 
   actions: {
@@ -8,9 +9,14 @@ var ContactsController = Ember.ArrayController.extend({
       if (this.get('newContact') != null) {
         App.postJSON('/list', { email: this.get('newContact') }).then(function (res) {
           var newContact = App.Contact.create(res);
-          newContact.set('signallingChannel', self.get('target.connection'));
-          self.get('content').pushObject(newContact);
           self.set('newContact', null);
+          newContact.set('signallingChannel', self.get('controllers.application.connection'));
+
+          if (self.get('controllers.application.stream') != null) {
+            newContact.setOutgoingStream(self.get('controllers.application.stream'));
+          }
+
+          self.get('content').pushObject(newContact);
         }, function (err) {
           // TODO
         });

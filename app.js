@@ -36,7 +36,7 @@ app.post('/auth/login', function (req, res) {
     url: 'https://verifier.login.persona.org/verify',
     form: {
       'assertion': req.body.assertion,
-      'audience': 'http://localhost:3000'
+      'audience': 'http://' + req.host + ':3000'
     }
   }, function (err, v_res, body) {
     if (err) {
@@ -135,10 +135,12 @@ io.configure(function () {
 
 io.sockets.on('connection', function (socket) {
   var user = users[socket.handshake.email];
-  user.sid = socket.sid;
+  user.sid = socket.id;
 
   socket.on('signal', function (signal) {
     var to_user = users[signal.to];
+
+    console.log(signal, to_user);
 
     if (typeof to_user === 'undefined' || to_user.sid === null) {
       return;
