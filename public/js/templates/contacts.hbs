@@ -1,4 +1,15 @@
 <div class="list-group">
-  <a href="" class="list-group-item">Not yet implemented</a>
-  <a href="" class="list-group-item">Yeppers</a>
+  {{#each contact in controller}}
+    <a href="#" class="list-group-item" {{action 'openChat' contact}}>
+      <h4 class="list-group-item-heading">{{contact.email}}</h4>
+      <p class="list-group-item-text">{{contact.status}}</p>
+    </a>
+  {{else}}
+    <a href="#" class="list-group-item">No contacts</a>
+  {{/each}}
 </div>
+
+<form role="form" class="form-inline">
+  <div class="form-group">{{input type="text" value=newContact class="form-control"}}</div>
+  <button class="btn btn-success" {{action add}}>Add</button>
+</form>
