@@ -15,10 +15,6 @@ var ContactsController = Ember.ArrayController.extend({
           // TODO
         });
       }
-    },
-
-    openChat: function (contact) {
-      contact.prepareCall();
     }
   }
 });

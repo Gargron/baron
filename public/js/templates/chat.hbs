@@ -1,0 +1,30 @@
+<div class="panel panel-default">
+  <div class="panel-heading">Chat with {{email}}</div>
+
+  <div class="panel-body">
+    <button class="btn" {{action 'call' false}}>Call</button>
+    <button class="btn" {{action 'call' true}}>Call with video</button>
+
+    <hr>
+
+    <form role="form">
+      <div class="form-group">
+        {{input type="text" value=newMessage class="form-control"}}
+      </div>
+
+      <button class="btn btn-success" {{action 'sendMessage'}}>Post</button>
+    </form>
+  </div>
+
+  <table class="table">
+    <tbody>
+      {{#each message in messages}}
+        <tr>
+          <td>{{message.from}}</td>
+          <td>{{message.text}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+

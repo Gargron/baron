@@ -1,6 +1,14 @@
 <div class="container">
 
   <div class="page-header">
+    <div class="pull-right">
+      {{#if currentUser}}
+        <button {{action 'logout'}} class="btn">Logout</button>
+      {{else}}
+        <button {{action 'login'}} class="btn btn-primary">Login with Mozilla Persona</button>
+      {{/if}}
+    </div>
+
     <h1>
       Skype Alternative
 
@@ -11,14 +19,6 @@
   </div>
 
   {{#if currentUser}}
-    <button {{action 'logout'}} class="btn">Logout</button>
-  {{else}}
-    <button {{action 'login'}} class="btn btn-primary">Login with Mozilla Persona</button>
-  {{/if}}
-
-  {{#if currentUser}}
-    <hr>
-
     <div class="row">
       <div class="col-md-4">
         {{render 'contacts'}}

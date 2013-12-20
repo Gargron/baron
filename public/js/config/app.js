@@ -30,5 +30,9 @@ var App = Ember.Application.createWithMixins({
   }
 });
 
+App.Router = Ember.Router.extend({
+  location: 'none'
+});
+
 module.exports = App;
 
