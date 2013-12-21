@@ -76,24 +76,16 @@ var ChatController = Ember.ObjectController.extend({
     var self = this
       contact = this.get('content');
 
-    contact.on('channelMessageReceived', function (e) {
+    contact.on('channel.message', function (e) {
       self.get('messages').pushObject(e);
-    });
-
-    contact.on('connectionEstablished', function () {
-      contact.prepareChat();
-    });
-
-    contact.on('streamAdded', function (stream) {
-      contact.set('remoteStream', URL.createObjectURL(stream));
     });
   },
 
-  localStream: function () {
-    return URL.createObjectURL(this.get('controllers.application.stream'));
-  }.property('controllers.application.stream'),
-
   actions: {
+    start: function () {
+      this.get('content').prepareCall();
+    },
+
     call: function (with_video) {
       // TODO
     },
@@ -170,7 +162,6 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   peer: null,
   dataChannel: null,
   signallingChannel: null,
-  remoteStream: null,
 
   init: function () {
     var self = this,
@@ -181,8 +172,8 @@ var Contact = Ember.Object.extend(Ember.Evented, {
         ]
       }, {
         optional: [
-          { DtlsSrtpKeyAgreement: true },
-          { RtpDataChannels: true }
+          //{ DtlsSrtpKeyAgreement: true },
+          // { RtpDataChannels: true }
         ]
       });
 
@@ -195,31 +186,65 @@ var Contact = Ember.Object.extend(Ember.Evented, {
           type: 'ice',
           payload: e.candidate
         });
+
+        connection.onicecandidate = null;
       }
+    };
+
+    connection.onconnection = function () {
+      var channel;
+
+      console.log('Connection established');
+
+      channel = self.get('peer').createDataChannel('chat', { protocol: "text/plain", negotiated: true, id: 1 });
+      channel.binaryType = 'blob';
+
+      self._bindDataEvents(channel);
+      self.set('dataChannel', channel);
+    };
+
+    connection.onclosedconnection = function () {
+      console.log('Connection closed');
+    };
+
+    connection.ondatachannel = function (e) {
+      console.log('Data channel received', e);
     };
 
     connection.onnegotiationneeded = function () {
       console.log('Negotiation needed');
+
       connection.createOffer(function (offer) {
         self._onCreateOffer(offer);
-      }, self._handleFailure, {});
-    };
-
-    connection.ondatachannel = function (e) {
-      console.log('Data channel available', e);
-      self.set('dataChannel', e.channel);
-      self._bindDataEvents();
+      }, self._handleFailure);
     };
 
     connection.onaddstream = function (e) {
-      self.trigger('streamAdded', e.stream);
+      console.log('Stream received', e);
+      self.trigger('stream.added', e.stream);
     };
 
     connection.onremovestream = function () {
-      self.trigger('streamRemoved');
+      console.log('Stream removed');
+      self.trigger('stream.removed');
     };
 
     this.set('peer', connection);
+  },
+
+  _bindDataEvents: function (channel) {
+    channel.onopen = function () {
+      self.trigger('channel.opened');
+    };
+
+    channel.onmessage = function (e) {
+      self.trigger('channel.message', e);
+      console.log(e);
+    };
+
+    channel.onclose = function () {
+      self.trigger('channel.closed');
+    };
   },
 
   addIceCandidate: function (candidate) {
@@ -231,14 +256,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     this.get('peer').addStream(stream);
   },
 
-  prepareChat: function () {
-    this.set('dataChannel', this.get('peer').createDataChannel('chat'));
-    this._bindDataEvents();
-  },
-
   pushMessage: function (msg) {
     if (this.get('dataChannel') === null) {
-      return;
+      throw new Exception("No data channel established");
     }
 
     this.get('dataChannel').send(msg);
@@ -250,7 +270,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     connection.createOffer(function (offer) {
       self._onCreateOffer(offer);
-    }, this._handleFailure, {});
+    }, this._handleFailure);
   },
 
   acceptCall: function (offer) {
@@ -261,21 +281,30 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       connection.createAnswer(function (answer) {
         connection.setLocalDescription(answer);
 
+        console.log('Answer created', offer);
+        self.trigger('connection.opened');
+
         self.get('signallingChannel').emit('signal', {
           to: self.get('email'),
           type: 'answer',
           payload: answer
         });
-      }, self._handleFailure, {});
+      }, self._handleFailure);
     }, this._handleFailure);
   },
 
   finalizeCall: function (answer) {
     var self = this;
 
+    console.log('Answer received', answer);
+
     this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {
-      self.trigger('connectionEstablished');
-    });
+      self.trigger('connection.opened');
+    }, this._handleFailure);
+  },
+
+  closeCall: function () {
+    this.get('peer').close();
   },
 
   _onCreateOffer: function (offer) {
@@ -295,18 +324,6 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   _handleFailure: function (err) {
     console.error(err);
-  },
-
-  _bindDataEvents: function () {
-    var self = this;
-
-    this.get('dataChannel').onopen = function () {
-      self.trigger('channelOpened');
-    };
-
-    this.get('dataChannel').onmessage = function (e) {
-      self.trigger('channelMessageReceived', e);
-    };
   }
 });
 
@@ -318,7 +335,7 @@ var ApplicationRoute = Ember.Route.extend({
   setupController: function (controller) {
     var self = this;
 
-    navigator.mozGetUserMedia({ video: true, audio: false }, function (stream) {
+    navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
       var contacts = self.controllerFor('contacts').get('content');
       controller.set('stream', stream);
 
@@ -424,7 +441,6 @@ module.exports = ApplicationRoute;
 var ChatRoute = Ember.Route.extend({
   setupController: function (controller, model) {
     controller.set('content', model);
-    model.prepareCall();
     controller._bindEvents();
   }
 });
@@ -532,7 +548,11 @@ function program1(depth0,data) {
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</div>\n\n  <div class=\"panel-body\">\n    <button class=\"btn\" ");
+  data.buffer.push("</div>\n\n  <div class=\"panel-body\">\n    <button class=\"btn btn-success\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(">Initiate chat</button>\n    <button class=\"btn\" ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "call", false, {hash:{},contexts:[depth0,depth0],types:["STRING","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
@@ -553,21 +573,7 @@ function program1(depth0,data) {
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "sendMessage", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Post</button>\n    </form>\n  </div>\n\n  <video ");
-  hashContexts = {'src': depth0};
-  hashTypes = {'src': "STRING"};
-  options = {hash:{
-    'src': ("remoteStream")
-  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
-  data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
-  data.buffer.push(" autoplay></video>\n  <video ");
-  hashContexts = {'src': depth0};
-  hashTypes = {'src': "STRING"};
-  options = {hash:{
-    'src': ("localStream")
-  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
-  data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
-  data.buffer.push(" autoplay width=\"200\"></video>\n\n  <table class=\"table\">\n    <tbody>\n      ");
+  data.buffer.push(">Post</button>\n    </form>\n  </div>\n\n  <table class=\"table\">\n    <tbody>\n      ");
   hashTypes = {};
   hashContexts = {};
   stack2 = helpers.each.call(depth0, "message", "in", "messages", {hash:{},inverse:self.noop,fn:self.program(1, program1, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});

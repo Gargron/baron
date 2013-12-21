@@ -2,6 +2,7 @@
   <div class="panel-heading">Chat with {{email}}</div>
 
   <div class="panel-body">
+    <button class="btn btn-success" {{action 'start'}}>Initiate chat</button>
     <button class="btn" {{action 'call' false}}>Call</button>
     <button class="btn" {{action 'call' true}}>Call with video</button>
 
@@ -15,9 +16,6 @@
       <button class="btn btn-success" {{action 'sendMessage'}}>Post</button>
     </form>
   </div>
-
-  <video {{bind-attr src='remoteStream'}} autoplay></video>
-  <video {{bind-attr src='localStream'}} autoplay width="200"></video>
 
   <table class="table">
     <tbody>

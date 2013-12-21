@@ -2,7 +2,7 @@ var ApplicationRoute = Ember.Route.extend({
   setupController: function (controller) {
     var self = this;
 
-    navigator.mozGetUserMedia({ video: true, audio: false }, function (stream) {
+    navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
       var contacts = self.controllerFor('contacts').get('content');
       controller.set('stream', stream);
 

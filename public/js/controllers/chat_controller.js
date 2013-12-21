@@ -7,24 +7,16 @@ var ChatController = Ember.ObjectController.extend({
     var self = this
       contact = this.get('content');
 
-    contact.on('channelMessageReceived', function (e) {
+    contact.on('channel.message', function (e) {
       self.get('messages').pushObject(e);
-    });
-
-    contact.on('connectionEstablished', function () {
-      contact.prepareChat();
-    });
-
-    contact.on('streamAdded', function (stream) {
-      contact.set('remoteStream', URL.createObjectURL(stream));
     });
   },
 
-  localStream: function () {
-    return URL.createObjectURL(this.get('controllers.application.stream'));
-  }.property('controllers.application.stream'),
-
   actions: {
+    start: function () {
+      this.get('content').prepareCall();
+    },
+
     call: function (with_video) {
       // TODO
     },
