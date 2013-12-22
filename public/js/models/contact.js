@@ -3,7 +3,8 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   status: null,
   peer: null,
   dataChannel: null,
-  signallingChannel: null,
+  signalingChannel: null,
+  connected: false,
 
   init: function () {
     var self = this,
@@ -14,16 +15,19 @@ var Contact = Ember.Object.extend(Ember.Evented, {
         ]
       }, {
         optional: [
-          //{ DtlsSrtpKeyAgreement: true },
-          // { RtpDataChannels: true }
+          { DtlsSrtpKeyAgreement: true },
+          { RtpDataChannels: true }
         ]
       });
+
+    var channel = connection.createDataChannel('chat');
+    channel.binaryType = 'blob';
 
     connection.onicecandidate = function (e) {
       console.log('Ice candidate generated', e);
 
       if (e.candidate) {
-        self.get('signallingChannel').emit('signal', {
+        self.get('signalingChannel').emit('signal', {
           to: self.get('email'),
           type: 'ice',
           payload: e.candidate
@@ -33,24 +37,27 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       }
     };
 
-    connection.onconnection = function () {
-      var channel;
+    connection.onsignalingstatechange = function () {
+      console.log('State change', connection.signalingState);
 
-      console.log('Connection established');
-
-      channel = self.get('peer').createDataChannel('chat', { protocol: "text/plain", negotiated: true, id: 1 });
-      channel.binaryType = 'blob';
-
-      self._bindDataEvents(channel);
-      self.set('dataChannel', channel);
-    };
-
-    connection.onclosedconnection = function () {
-      console.log('Connection closed');
+      if (connection.signalingState === 'stable') {
+        console.log('Connection established');
+        self.trigger('connection.opened');
+        self.set('connected', true);
+      } else if (connection.signalingState === 'closed') {
+        console.log('Connection closed');
+        self.trigger('connection.closed');
+        self.set('connected', false);
+      }
     };
 
     connection.ondatachannel = function (e) {
       console.log('Data channel received', e);
+
+      var new_channel = e.channel;
+      new_channel.binaryType = 'blob';
+      self._bindDataEvents(new_channel);
+      self.set('dataChannel', new_channel);
     };
 
     connection.onnegotiationneeded = function () {
@@ -72,16 +79,23 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     };
 
     this.set('peer', connection);
+    this._bindDataEvents(channel);
+    this.set('dataChannel', channel);
   },
 
   _bindDataEvents: function (channel) {
+    var self = this;
+
     channel.onopen = function () {
       self.trigger('channel.opened');
     };
 
     channel.onmessage = function (e) {
-      self.trigger('channel.message', e);
-      console.log(e);
+      if (e.data instanceof Blob) {
+        self.trigger('channel.file', e.data);
+      } else {
+        self.trigger('channel.message', e.data);
+      }
     };
 
     channel.onclose = function () {
@@ -119,30 +133,27 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     var self = this,
       connection = this.get('peer');
 
-    connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
-      connection.createAnswer(function (answer) {
-        connection.setLocalDescription(answer);
+    this.trigger('connection.incoming', function () {
+      connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
+        connection.createAnswer(function (answer) {
+          connection.setLocalDescription(answer, function () {
+            console.log('Answer created', offer);
 
-        console.log('Answer created', offer);
-        self.trigger('connection.opened');
-
-        self.get('signallingChannel').emit('signal', {
-          to: self.get('email'),
-          type: 'answer',
-          payload: answer
-        });
+            self.get('signalingChannel').emit('signal', {
+              to: self.get('email'),
+              type: 'answer',
+              payload: answer
+            });
+          }, self._handleFailure);
+        }, self._handleFailure);
       }, self._handleFailure);
-    }, this._handleFailure);
+    });
   },
 
   finalizeCall: function (answer) {
     var self = this;
-
     console.log('Answer received', answer);
-
-    this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {
-      self.trigger('connection.opened');
-    }, this._handleFailure);
+    this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
   closeCall: function () {
@@ -156,7 +167,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     console.log('Offer created', offer);
 
     connection.setLocalDescription(offer, function () {
-      self.get('signallingChannel').emit('signal', {
+      self.get('signalingChannel').emit('signal', {
         to: self.get('email'),
         type: 'offer',
         payload: offer

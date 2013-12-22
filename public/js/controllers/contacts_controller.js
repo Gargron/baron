@@ -1,6 +1,20 @@
 var ContactsController = Ember.ArrayController.extend({
-  needs: ['application'],
+  needs: ['application', 'calls'],
   newContact: null,
+
+  _contactFactory: function (raw) {
+    var self = this,
+      contact = App.Contact.create(raw);
+
+    contact.set('signalingChannel', this.get('controllers.application.connection'));
+
+    contact.on('connection.incoming', function (accept) {
+      var request = Ember.Object.create({ contact: contact, accept: accept });
+      self.get('controllers.calls.content').pushObject(request);
+    });
+
+    return contact;
+  },
 
   actions: {
     add: function () {
@@ -8,15 +22,8 @@ var ContactsController = Ember.ArrayController.extend({
 
       if (this.get('newContact') != null) {
         App.postJSON('/list', { email: this.get('newContact') }).then(function (res) {
-          var newContact = App.Contact.create(res);
           self.set('newContact', null);
-          newContact.set('signallingChannel', self.get('controllers.application.connection'));
-
-          if (self.get('controllers.application.stream') != null) {
-            newContact.setOutgoingStream(self.get('controllers.application.stream'));
-          }
-
-          self.get('content').pushObject(newContact);
+          self.get('content').pushObject(self._contactFactory(res));
         }, function (err) {
           // TODO
         });

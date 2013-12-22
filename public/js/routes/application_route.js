@@ -2,19 +2,6 @@ var ApplicationRoute = Ember.Route.extend({
   setupController: function (controller) {
     var self = this;
 
-    navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
-      var contacts = self.controllerFor('contacts').get('content');
-      controller.set('stream', stream);
-
-      if (typeof contacts !== 'undefined') {
-        contacts.forEach(function (contact) {
-          contact.setOutgoingStream(stream);
-        });
-      }
-    }, function (err) {
-      console.error(err);
-    });
-
     App.getJSON('/auth/current').then(function (auth) {
       controller.set('currentUser', auth.email);
       self._loadPersona();
@@ -56,14 +43,7 @@ var ApplicationRoute = Ember.Route.extend({
 
     App.getJSON('/list').then(function (list) {
       list.forEach(function (_contact) {
-        var contact = App.Contact.create(_contact);
-
-        contact.set('signallingChannel', self.controller.get('connection'));
-
-        if (self.controller.get('stream') != null) {
-          contact.setOutgoingStream(self.controller.get('stream'));
-        }
-
+        var contact = self.controllerFor('contacts')._contactFactory(_contact);
         self.controllerFor('contacts').get('content').pushObject(contact);
       });
     }, function (err) {

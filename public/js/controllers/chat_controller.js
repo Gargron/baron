@@ -8,13 +8,20 @@ var ChatController = Ember.ObjectController.extend({
       contact = this.get('content');
 
     contact.on('channel.message', function (e) {
-      self.get('messages').pushObject(e);
+      console.log(e);
     });
   },
 
   actions: {
     start: function () {
-      this.get('content').prepareCall();
+      var self = this;
+
+      navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
+        self.get('content').setOutgoingStream(stream);
+        self.get('content').prepareCall();
+      }, function (err) {
+        console.error(err);
+      });
     },
 
     call: function (with_video) {
@@ -22,7 +29,7 @@ var ChatController = Ember.ObjectController.extend({
     },
 
     hangup: function () {
-      // TODO
+      this.get('content').closeCall();
     },
 
     sendMessage: function () {
