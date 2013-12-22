@@ -5,6 +5,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   dataChannel: null,
   signalingChannel: null,
   connected: false,
+  messages: [],
 
   init: function () {
     var self = this,
@@ -94,7 +95,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
       } else {
-        self.trigger('channel.message', e.data);
+        var message = App.Message.create({ from: self, text: e.data });
+        self.get('messages').pushObject(message);
+        self.trigger('channel.message', message);
       }
     };
 

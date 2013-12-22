@@ -1,16 +1,6 @@
 var ChatController = Ember.ObjectController.extend({
   needs: ['application'],
-  messages: [],
   newMessage: null,
-
-  _bindEvents: function () {
-    var self = this
-      contact = this.get('content');
-
-    contact.on('channel.message', function (e) {
-      console.log(e);
-    });
-  },
 
   actions: {
     start: function () {
@@ -33,7 +23,9 @@ var ChatController = Ember.ObjectController.extend({
     },
 
     sendMessage: function () {
+      var message = App.Message.create({ from: this.get('controllers.application.currentUser'), text: this.get('newMessage')});
       this.get('content').pushMessage(this.get('newMessage'));
+      this.get('content.messages').pushObject(message);
       this.set('newMessage', '');
     }
   }
