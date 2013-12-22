@@ -3,7 +3,7 @@ var ApplicationRoute = Ember.Route.extend({
     var self = this;
 
     App.getJSON('/auth/current').then(function (auth) {
-      controller.set('currentUser', auth.email);
+      controller.set('currentUser', Ember.Object.create(auth));
       self._loadPersona();
       self._loadContacts();
       self._bindSignals();
@@ -16,11 +16,11 @@ var ApplicationRoute = Ember.Route.extend({
     var self = this;
 
     navigator.id.watch({
-      loggedInUser: self.controller.get('currentUser'),
+      loggedInUser: self.controller.get('currentUser.email'),
 
       onlogin: function (assertion) {
-        App.postJSON('/auth/login', { assertion: assertion }).then(function (res) {
-          self.controller.set('currentUser', res.email);
+        App.postJSON('/auth/login', { assertion: assertion }).then(function (auth) {
+          self.controller.set('currentUser', Ember.Object.create(auth));
           self._loadContacts();
           self._bindSignals();
         }, function (err) {

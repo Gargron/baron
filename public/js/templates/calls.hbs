@@ -1,8 +1,12 @@
 {{#each call in controller}}
-  <div class="alert alert-info">
-    <strong>{{call.contact.email}}</strong> is calling you
-    <br>
-    <button class="btn btn-success" {{action 'accept' call}}>Accept</button>
-    <button class="btn btn-danger" {{action 'deny' call}}>Deny</button>
+  <div class="panel panel-info">
+    <div class="panel-heading">
+      <strong>{{call.contact.email}}</strong> is calling you
+    </div>
+
+    <div class="panel-body">
+      <button class="btn btn-success" {{action 'accept' call}}>Accept</button>
+      <button class="btn btn-danger" {{action 'deny' call}}>Deny</button>
+    </div>
   </div>
 {{/each}}

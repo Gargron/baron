@@ -86,8 +86,21 @@ module.exports = CallsController;
 
 },{}],5:[function(require,module,exports){
 var ChatController = Ember.ObjectController.extend({
-  needs: ['application'],
+  needs: ['application', 'calls'],
   newMessage: null,
+  canChat: false,
+
+  cannotChat: function () {
+    return !this.get('canChat');
+  }.property('canChat'),
+
+  isReceivingCall: function () {
+    var self = this;
+
+    return this.get('controllers.calls.content').find(function (call) {
+      return call.get('contact') == self.get('content');
+    }) != null;
+  }.property('controllers.calls.content.@each'),
 
   actions: {
     start: function () {
@@ -224,12 +237,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
       if (connection.signalingState === 'stable') {
         console.log('Connection established');
-        self.trigger('connection.opened');
         self.set('connected', true);
+        self.trigger('connection.opened');
       } else if (connection.signalingState === 'closed') {
         console.log('Connection closed');
-        self.trigger('connection.closed');
         self.set('connected', false);
+        self.trigger('connection.closed');
       }
     };
 
@@ -277,7 +290,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
       } else {
-        var message = App.Message.create({ from: self, text: e.data });
+        var message = App.Message.create({ from: self, text: e.data, remote: true });
         self.get('messages').pushObject(message);
         self.trigger('channel.message', message);
       }
@@ -285,6 +298,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     channel.onclose = function () {
       console.log('Channel closed', channel);
+      self.closeCall();
       self.trigger('channel.closed');
     };
   },
@@ -299,10 +313,6 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   },
 
   pushMessage: function (msg) {
-    if (this.get('dataChannel') === null) {
-      throw new Exception("No data channel established");
-    }
-
     this.get('dataChannel').send(msg);
   },
 
@@ -350,6 +360,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   closeCall: function () {
     this.get('peer').close();
+    this.set('connected', false);
+    this.init();
+    this.trigger('connection.closed');
   },
 
   _onCreateOffer: function (offer) {
@@ -369,7 +382,17 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   _handleFailure: function (err) {
     console.error(err);
-  }
+  },
+
+  remoteMessagesCount: function () {
+    return this.get('messages').reduce(function (aggr, el) {
+      if (el.get('remote')) {
+        return aggr + 1;
+      }
+
+      return aggr;
+    }, 0);
+  }.property('messages.@each')
 });
 
 module.exports = Contact;
@@ -378,7 +401,8 @@ module.exports = Contact;
 },{}],9:[function(require,module,exports){
 var Message = Ember.Object.extend({
   from: null,
-  text: null
+  text: null,
+  remote: false
 });
 
 module.exports = Message;
@@ -390,7 +414,7 @@ var ApplicationRoute = Ember.Route.extend({
     var self = this;
 
     App.getJSON('/auth/current').then(function (auth) {
-      controller.set('currentUser', auth.email);
+      controller.set('currentUser', Ember.Object.create(auth));
       self._loadPersona();
       self._loadContacts();
       self._bindSignals();
@@ -403,11 +427,11 @@ var ApplicationRoute = Ember.Route.extend({
     var self = this;
 
     navigator.id.watch({
-      loggedInUser: self.controller.get('currentUser'),
+      loggedInUser: self.controller.get('currentUser.email'),
 
       onlogin: function (assertion) {
-        App.postJSON('/auth/login', { assertion: assertion }).then(function (res) {
-          self.controller.set('currentUser', res.email);
+        App.postJSON('/auth/login', { assertion: assertion }).then(function (auth) {
+          self.controller.set('currentUser', Ember.Object.create(auth));
           self._loadContacts();
           self._bindSignals();
         }, function (err) {
@@ -474,6 +498,14 @@ module.exports = ApplicationRoute;
 },{}],11:[function(require,module,exports){
 var ChatRoute = Ember.Route.extend({
   setupController: function (controller, model) {
+    model.on('channel.opened', function () {
+      controller.set('canChat', true);
+    });
+
+    model.on('channel.closed', function () {
+      controller.set('canChat', false);
+    });
+
     controller.set('content', model);
   }
 });
@@ -516,7 +548,7 @@ function program5(depth0,data) {
   data.buffer.push("\n        <small>");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "currentUser", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "currentUser.email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
   data.buffer.push("</small>\n      ");
   return buffer;
   }
@@ -570,19 +602,19 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
 function program1(depth0,data) {
   
   var buffer = '', hashTypes, hashContexts;
-  data.buffer.push("\n  <div class=\"alert alert-info\">\n    <strong>");
+  data.buffer.push("\n  <div class=\"panel panel-info\">\n    <div class=\"panel-heading\">\n      <strong>");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "call.contact.email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</strong> is calling you\n    <br>\n    <button class=\"btn btn-success\" ");
+  data.buffer.push("</strong> is calling you\n    </div>\n\n    <div class=\"panel-body\">\n      <button class=\"btn btn-success\" ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "accept", "call", {hash:{},contexts:[depth0,depth0],types:["STRING","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Accept</button>\n    <button class=\"btn btn-danger\" ");
+  data.buffer.push(">Accept</button>\n      <button class=\"btn btn-danger\" ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "deny", "call", {hash:{},contexts:[depth0,depth0],types:["STRING","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Deny</button>\n  </div>\n");
+  data.buffer.push(">Deny</button>\n    </div>\n  </div>\n");
   return buffer;
   }
 
@@ -598,51 +630,100 @@ function program1(depth0,data) {
 Ember.TEMPLATES['chat'] = Ember.Handlebars.template(function anonymous(Handlebars,depth0,helpers,partials,data) {
 this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
-  var buffer = '', stack1, stack2, hashTypes, hashContexts, options, escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
+  var buffer = '', stack1, hashTypes, hashContexts, escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
 
 function program1(depth0,data) {
   
   var buffer = '', hashTypes, hashContexts;
-  data.buffer.push("\n      <button class=\"btn btn-danger\" ");
+  data.buffer.push("\n      <p>");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "hangup", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Hang up</button>\n    ");
+  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(" is calling you right now</p>\n    ");
   return buffer;
   }
 
 function program3(depth0,data) {
   
-  var buffer = '', hashTypes, hashContexts;
-  data.buffer.push("\n      <button class=\"btn btn-success\" ");
+  var buffer = '', stack1, hashTypes, hashContexts;
+  data.buffer.push("\n      ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Initiate chat</button>\n      <button class=\"btn\" ");
+  stack1 = helpers['if'].call(depth0, "connected", {hash:{},inverse:self.program(6, program6, data),fn:self.program(4, program4, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  data.buffer.push("\n    ");
+  return buffer;
+  }
+function program4(depth0,data) {
+  
+  var buffer = '', stack1, hashTypes, hashContexts, options;
+  data.buffer.push("\n        <form role=\"form\" class=\"form-inline\">\n          <button class=\"btn btn-danger\" ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "call", false, {hash:{},contexts:[depth0,depth0],types:["STRING","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Call</button>\n      <button class=\"btn\" ");
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "hangup", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(">Hang up</button>\n\n          <div class=\"form-group\">\n            ");
+  hashContexts = {'type': depth0,'disabled': depth0,'value': depth0,'class': depth0};
+  hashTypes = {'type': "STRING",'disabled': "ID",'value': "ID",'class': "STRING"};
+  options = {hash:{
+    'type': ("text"),
+    'disabled': ("cannotChat"),
+    'value': ("newMessage"),
+    'class': ("form-control")
+  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
+  data.buffer.push(escapeExpression(((stack1 = helpers.input || depth0.input),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "input", options))));
+  data.buffer.push("\n          </div>\n\n          <button type=\"submit\" ");
+  hashContexts = {'disabled': depth0};
+  hashTypes = {'disabled': "ID"};
+  options = {hash:{
+    'disabled': ("cannotChat")
+  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
+  data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
+  data.buffer.push(" class=\"btn btn-success\" ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "call", true, {hash:{},contexts:[depth0,depth0],types:["STRING","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Call with video</button>\n    ");
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "sendMessage", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(">Post</button>\n        </form>\n      ");
   return buffer;
   }
 
-function program5(depth0,data) {
+function program6(depth0,data) {
   
   var buffer = '', hashTypes, hashContexts;
-  data.buffer.push("\n        <tr>\n          <td>");
+  data.buffer.push("\n        <button class=\"btn btn-success\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(">Initiate chat</button>\n        <button class=\"btn\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "call", false, {hash:{},contexts:[depth0,depth0],types:["STRING","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(">Call</button>\n        <button class=\"btn\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "call", true, {hash:{},contexts:[depth0,depth0],types:["STRING","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(">Call with video</button>\n      ");
+  return buffer;
+  }
+
+function program8(depth0,data) {
+  
+  var buffer = '', hashTypes, hashContexts;
+  data.buffer.push("\n      <dl class=\"dl-horizontal\">\n        <dt>");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "message.from.email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</td>\n          <td>");
+  data.buffer.push("</dt>\n        <dd>");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "message.text", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</td>\n        </tr>\n      ");
+  data.buffer.push("</dd>\n      </dl>\n    ");
   return buffer;
+  }
+
+function program10(depth0,data) {
+  
+  
+  data.buffer.push("\n      <p>No messages to display</p>\n    ");
   }
 
   data.buffer.push("<div class=\"panel panel-default\">\n  <div class=\"panel-heading\">Chat with ");
@@ -652,27 +733,14 @@ function program5(depth0,data) {
   data.buffer.push("</div>\n\n  <div class=\"panel-body\">\n    ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers['if'].call(depth0, "connected", {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  stack1 = helpers['if'].call(depth0, "isReceivingCall", {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
-  data.buffer.push("\n\n    <hr>\n\n    <form role=\"form\">\n      <div class=\"form-group\">\n        ");
-  hashContexts = {'type': depth0,'value': depth0,'class': depth0};
-  hashTypes = {'type': "STRING",'value': "ID",'class': "STRING"};
-  options = {hash:{
-    'type': ("text"),
-    'value': ("newMessage"),
-    'class': ("form-control")
-  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
-  data.buffer.push(escapeExpression(((stack1 = helpers.input || depth0.input),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "input", options))));
-  data.buffer.push("\n      </div>\n\n      <button class=\"btn btn-success\" ");
+  data.buffer.push("\n\n    <hr>\n\n    ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "sendMessage", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push(">Post</button>\n    </form>\n  </div>\n\n  <table class=\"table\">\n    <tbody>\n      ");
-  hashTypes = {};
-  hashContexts = {};
-  stack2 = helpers.each.call(depth0, "message", "in", "messages", {hash:{},inverse:self.noop,fn:self.program(5, program5, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
-  if(stack2 || stack2 === 0) { data.buffer.push(stack2); }
-  data.buffer.push("\n    </tbody>\n  </table>\n</div>\n\n");
+  stack1 = helpers.each.call(depth0, "message", "in", "messages", {hash:{},inverse:self.program(10, program10, data),fn:self.program(8, program8, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  data.buffer.push("\n  </div>\n</div>\n\n");
   return buffer;
   
 });
@@ -699,11 +767,15 @@ function program1(depth0,data) {
 function program2(depth0,data) {
   
   var buffer = '', hashTypes, hashContexts;
-  data.buffer.push("\n      <h4 class=\"list-group-item-heading\">");
+  data.buffer.push("\n      <h4 class=\"list-group-item-heading\">\n        ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "contact.email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</h4>\n      <p class=\"list-group-item-text\">");
+  data.buffer.push("\n        <span class=\"badge\">");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "contact.remoteMessagesCount", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("</span>\n      </h4>\n      <p class=\"list-group-item-text\">");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "contact.status", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));

@@ -1,6 +1,19 @@
 var ChatController = Ember.ObjectController.extend({
-  needs: ['application'],
+  needs: ['application', 'calls'],
   newMessage: null,
+  canChat: false,
+
+  cannotChat: function () {
+    return !this.get('canChat');
+  }.property('canChat'),
+
+  isReceivingCall: function () {
+    var self = this;
+
+    return this.get('controllers.calls.content').find(function (call) {
+      return call.get('contact') == self.get('content');
+    }) != null;
+  }.property('controllers.calls.content.@each'),
 
   actions: {
     start: function () {

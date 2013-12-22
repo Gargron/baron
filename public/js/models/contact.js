@@ -40,12 +40,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
       if (connection.signalingState === 'stable') {
         console.log('Connection established');
-        self.trigger('connection.opened');
         self.set('connected', true);
+        self.trigger('connection.opened');
       } else if (connection.signalingState === 'closed') {
         console.log('Connection closed');
-        self.trigger('connection.closed');
         self.set('connected', false);
+        self.trigger('connection.closed');
       }
     };
 
@@ -93,7 +93,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
       } else {
-        var message = App.Message.create({ from: self, text: e.data });
+        var message = App.Message.create({ from: self, text: e.data, remote: true });
         self.get('messages').pushObject(message);
         self.trigger('channel.message', message);
       }
@@ -101,6 +101,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     channel.onclose = function () {
       console.log('Channel closed', channel);
+      self.closeCall();
       self.trigger('channel.closed');
     };
   },
@@ -115,10 +116,6 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   },
 
   pushMessage: function (msg) {
-    if (this.get('dataChannel') === null) {
-      throw new Exception("No data channel established");
-    }
-
     this.get('dataChannel').send(msg);
   },
 
@@ -166,6 +163,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   closeCall: function () {
     this.get('peer').close();
+    this.set('connected', false);
+    this.init();
+    this.trigger('connection.closed');
   },
 
   _onCreateOffer: function (offer) {
@@ -185,7 +185,17 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   _handleFailure: function (err) {
     console.error(err);
-  }
+  },
+
+  remoteMessagesCount: function () {
+    return this.get('messages').reduce(function (aggr, el) {
+      if (el.get('remote')) {
+        return aggr + 1;
+      }
+
+      return aggr;
+    }, 0);
+  }.property('messages.@each')
 });
 
 module.exports = Contact;
