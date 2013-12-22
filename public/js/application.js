@@ -205,9 +205,6 @@ var Contact = Ember.Object.extend(Ember.Evented, {
         ]
       });
 
-    var channel = connection.createDataChannel('chat');
-    channel.binaryType = 'blob';
-
     connection.onicecandidate = function (e) {
       console.log('Ice candidate generated', e);
 
@@ -264,18 +261,19 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     };
 
     this.set('peer', connection);
-    this._bindDataEvents(channel);
-    this.set('dataChannel', channel);
   },
 
   _bindDataEvents: function (channel) {
     var self = this;
 
     channel.onopen = function () {
+      console.log('Channel opened', channel);
       self.trigger('channel.opened');
     };
 
     channel.onmessage = function (e) {
+      console.log('Message received', e);
+
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
       } else {
@@ -286,6 +284,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     };
 
     channel.onclose = function () {
+      console.log('Channel closed', channel);
       self.trigger('channel.closed');
     };
   },
@@ -310,6 +309,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   prepareCall: function () {
     var self = this,
       connection = this.get('peer');
+
+    var channel = connection.createDataChannel('chat');
+    channel.binaryType = 'blob';
+
+    this._bindDataEvents(channel);
+    this.set('dataChannel', channel);
 
     connection.createOffer(function (offer) {
       self._onCreateOffer(offer);
