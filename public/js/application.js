@@ -392,7 +392,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
       return aggr;
     }, 0);
-  }.property('messages.@each')
+  }.property('messages.@each'),
+
+  isOnline: function () {
+    return this.get('sid') != null;
+  }.property('sid')
 });
 
 module.exports = Contact;
@@ -487,6 +491,22 @@ var ApplicationRoute = Ember.Route.extend({
         target.acceptCall(signal.payload);
       } else if (signal.type === 'answer') {
         target.finalizeCall(signal.payload);
+      }
+    });
+
+    connection.on('update', function (update) {
+      if (update.type === 'user') {
+        var user   = update.payload,
+          target = self.controllerFor('contacts').get('content').findBy('email', user.email);
+
+        if (typeof target === 'undefined') {
+          return;
+        }
+
+        target.setProperties(user);
+      } else if (update.type === 'list') {
+        var contact = self.controllerFor('contacts')._contactFactory(update.payload);
+        self.controllerFor('contacts').get('content').pushObject(contact);
       }
     });
   }
@@ -766,7 +786,7 @@ function program1(depth0,data) {
   }
 function program2(depth0,data) {
   
-  var buffer = '', hashTypes, hashContexts;
+  var buffer = '', stack1, hashTypes, hashContexts;
   data.buffer.push("\n      <h4 class=\"list-group-item-heading\">\n        ");
   hashTypes = {};
   hashContexts = {};
@@ -775,15 +795,27 @@ function program2(depth0,data) {
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "contact.remoteMessagesCount", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</span>\n      </h4>\n      <p class=\"list-group-item-text\">");
+  data.buffer.push("</span>\n      </h4>\n      <p class=\"list-group-item-text\">\n        ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "contact.status", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</p>\n    ");
+  stack1 = helpers['if'].call(depth0, "contact.isOnline", {hash:{},inverse:self.program(5, program5, data),fn:self.program(3, program3, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  data.buffer.push("\n      </p>\n    ");
   return buffer;
   }
+function program3(depth0,data) {
+  
+  
+  data.buffer.push("\n          online\n        ");
+  }
 
-function program4(depth0,data) {
+function program5(depth0,data) {
+  
+  
+  data.buffer.push("\n          offline\n        ");
+  }
+
+function program7(depth0,data) {
   
   
   data.buffer.push("\n    <a href=\"#\" class=\"list-group-item\">No contacts</a>\n  ");
@@ -792,7 +824,7 @@ function program4(depth0,data) {
   data.buffer.push("<div class=\"list-group\">\n  ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers.each.call(depth0, "contact", "in", "controller", {hash:{},inverse:self.program(4, program4, data),fn:self.program(1, program1, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  stack1 = helpers.each.call(depth0, "contact", "in", "controller", {hash:{},inverse:self.program(7, program7, data),fn:self.program(1, program1, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
   data.buffer.push("\n</div>\n\n<form role=\"form\">\n  <div class=\"form-group\">\n    ");
   hashContexts = {'type': depth0,'value': depth0,'class': depth0};

@@ -195,7 +195,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
       return aggr;
     }, 0);
-  }.property('messages.@each')
+  }.property('messages.@each'),
+
+  isOnline: function () {
+    return this.get('sid') != null;
+  }.property('sid')
 });
 
 module.exports = Contact;

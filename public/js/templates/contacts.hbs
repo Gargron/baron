@@ -5,7 +5,13 @@
         {{contact.email}}
         <span class="badge">{{contact.remoteMessagesCount}}</span>
       </h4>
-      <p class="list-group-item-text">{{contact.status}}</p>
+      <p class="list-group-item-text">
+        {{#if contact.isOnline}}
+          online
+        {{else}}
+          offline
+        {{/if}}
+      </p>
     {{/link-to}}
   {{else}}
     <a href="#" class="list-group-item">No contacts</a>

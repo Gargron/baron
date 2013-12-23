@@ -98,6 +98,10 @@ app.post('/list', function (req, res) {
     entry_a.push(user);
     entry_b.push(users[req.session.email]);
 
+    if (user.sid != null) {
+      io.sockets.socket(user.sid).emit('update', { type: 'list', payload: users[req.session.email] });
+    }
+
     res.send(JSON.stringify(user));
   } else {
     res.send(401);
@@ -149,7 +153,7 @@ var notify_contacts = function (user) {
   if (typeof list !== 'undefined') {
     list.forEach(function (contact) {
       if (contact.sid != null) {
-        io.sockets.socket(contact.sid).emit('update', user);
+        io.sockets.socket(contact.sid).emit('update', { type: 'user', payload: user });
       }
     });
   }

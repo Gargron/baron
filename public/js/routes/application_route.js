@@ -78,6 +78,22 @@ var ApplicationRoute = Ember.Route.extend({
         target.finalizeCall(signal.payload);
       }
     });
+
+    connection.on('update', function (update) {
+      if (update.type === 'user') {
+        var user   = update.payload,
+          target = self.controllerFor('contacts').get('content').findBy('email', user.email);
+
+        if (typeof target === 'undefined') {
+          return;
+        }
+
+        target.setProperties(user);
+      } else if (update.type === 'list') {
+        var contact = self.controllerFor('contacts')._contactFactory(update.payload);
+        self.controllerFor('contacts').get('content').pushObject(contact);
+      }
+    });
   }
 });
 
