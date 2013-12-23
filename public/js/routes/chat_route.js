@@ -8,6 +8,14 @@ var ChatRoute = Ember.Route.extend({
       controller.set('canChat', false);
     });
 
+    model.on('stream.added', function (stream) {
+      controller.set('remoteStream', stream);
+    });
+
+    model.on('stream.removed', function () {
+      controller.set('remoteStream', null);
+    });
+
     controller.set('content', model);
   }
 });

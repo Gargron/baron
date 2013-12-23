@@ -8,3 +8,26 @@
   margin-top: 12px;
   font-size: 22px;
 }
+
+.media-view {
+  background: #000;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.media-view .remote-stream {
+  display: block;
+  height: 250px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.media-view .local-stream {
+  display: block;
+  width: 150px;
+  height: auto;
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  border: 1px solid #000;
+}

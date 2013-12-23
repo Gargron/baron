@@ -69,10 +69,10 @@ module.exports = ApplicationController;
 },{}],4:[function(require,module,exports){
 var CallsController = Ember.ArrayController.extend({
   actions: {
-    accept: function (call) {
+    accept: function (call, fake, with_video) {
       var self = this;
 
-      navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, fake: fake, video: with_video }, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
         self.get('content').removeObject(call);
@@ -96,6 +96,11 @@ var ChatController = Ember.ObjectController.extend({
   needs: ['application', 'calls'],
   newMessage: null,
   canChat: false,
+  remoteStream: null,
+
+  hasMedia: function () {
+    return this.get('remoteStream') != null;
+  }.property('remoteStream'),
 
   cannotChat: function () {
     return !this.get('canChat');
@@ -110,10 +115,10 @@ var ChatController = Ember.ObjectController.extend({
   }.property('controllers.calls.content.@each'),
 
   actions: {
-    start: function () {
+    start: function (fake, with_video) {
       var self = this;
 
-      navigator.mozGetUserMedia({ audio: true, video: true, fake: true }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: fake }, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
       }, function (err) {
@@ -203,19 +208,21 @@ App.Contact = require('./models/contact');
 App.Message = require('./models/message');
 App.ApplicationRoute = require('./routes/application_route');
 App.ChatRoute = require('./routes/chat_route');
+App.MediaView = require('./views/media_view');
 
 require('./config/routes');
 
 module.exports = App;
 
 
-},{"./config/app":1,"./config/routes":2,"./controllers/application_controller":3,"./controllers/calls_controller":4,"./controllers/chat_controller":5,"./controllers/contacts_controller":6,"./models/contact":8,"./models/message":9,"./routes/application_route":10,"./routes/chat_route":11,"./templates":12}],8:[function(require,module,exports){
+},{"./config/app":1,"./config/routes":2,"./controllers/application_controller":3,"./controllers/calls_controller":4,"./controllers/chat_controller":5,"./controllers/contacts_controller":6,"./models/contact":8,"./models/message":9,"./routes/application_route":10,"./routes/chat_route":11,"./templates":12,"./views/media_view":17}],8:[function(require,module,exports){
 var Contact = Ember.Object.extend(Ember.Evented, {
   email: null,
   status: null,
   peer: null,
   dataChannel: null,
   signalingChannel: null,
+  localStream: null,
   connected: false,
   waiting: false,
   messages: [],
@@ -326,6 +333,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   setOutgoingStream: function (stream) {
     console.log('Adding stream', stream);
+    this.set('localStream', stream);
     this.get('peer').addStream(stream);
   },
 
@@ -378,7 +386,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   closeCall: function () {
     this.get('peer').close();
     this.set('connected', false);
+    this.set('localStream', null);
     this.init();
+    this.trigger('stream.removed');
     this.trigger('connection.closed');
   },
 
@@ -544,6 +554,14 @@ var ChatRoute = Ember.Route.extend({
       controller.set('canChat', false);
     });
 
+    model.on('stream.added', function (stream) {
+      controller.set('remoteStream', stream);
+    });
+
+    model.on('stream.removed', function () {
+      controller.set('remoteStream', null);
+    });
+
     controller.set('content', model);
   }
 });
@@ -647,8 +665,16 @@ function program1(depth0,data) {
   data.buffer.push("</strong> is calling you\n    </div>\n\n    <div class=\"panel-body\">\n      <button class=\"btn btn-success\" ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "accept", "call", {hash:{},contexts:[depth0,depth0],types:["STRING","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("><i class=\"fa fa-check\"></i> Accept</button>\n      <button class=\"btn btn-danger\" ");
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "accept", "call", true, false, {hash:{},contexts:[depth0,depth0,depth0,depth0],types:["STRING","ID","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-check\"></i> Accept</button>\n      <button class=\"btn btn-success\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "accept", "call", false, false, {hash:{},contexts:[depth0,depth0,depth0,depth0],types:["STRING","ID","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-phone\"></i> Accept with audio</button>\n      <button class=\"btn btn-success\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "accept", "call", false, true, {hash:{},contexts:[depth0,depth0,depth0,depth0],types:["STRING","ID","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-video-camera\"></i> Accept with video</button>\n      <button class=\"btn btn-danger\" ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "deny", "call", {hash:{},contexts:[depth0,depth0],types:["STRING","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
@@ -710,15 +736,7 @@ function program5(depth0,data) {
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "hangup", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("><i class=\"fa fa-power-off\"></i> Hang up</button>\n            <button class=\"btn btn-info\" ");
-  hashTypes = {};
-  hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "toggleAudio", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("><i class=\"fa fa-phone\"></i> Toggle audio</button>\n            <button class=\"btn btn-info\" ");
-  hashTypes = {};
-  hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "toggleVideo", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("><i class=\"fa fa-video-camera\"></i> Toggle video</button>\n\n            <div class=\"form-group\">\n              ");
+  data.buffer.push("><i class=\"fa fa-power-off\"></i> Hang up</button>\n\n            <div class=\"form-group\">\n              ");
   hashContexts = {'type': depth0,'disabled': depth0,'value': depth0,'class': depth0};
   hashTypes = {'type': "STRING",'disabled': "ID",'value': "ID",'class': "STRING"};
   options = {hash:{
@@ -766,8 +784,16 @@ function program10(depth0,data) {
   data.buffer.push("\n            <button class=\"btn btn-success\" ");
   hashTypes = {};
   hashContexts = {};
-  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("><i class=\"fa fa-power-off\"></i> Initiate text chat</button>\n          ");
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", true, false, {hash:{},contexts:[depth0,depth0,depth0],types:["STRING","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-power-off\"></i> Initiate text chat</button>\n            <button class=\"btn btn-info\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", false, false, {hash:{},contexts:[depth0,depth0,depth0],types:["STRING","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-phone\"></i> Call with audio</button>\n            <button class=\"btn btn-info\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "start", false, true, {hash:{},contexts:[depth0,depth0,depth0],types:["STRING","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-video-camera\"></i> Call with video</button>\n          ");
   return buffer;
   }
 
@@ -783,6 +809,17 @@ function program12(depth0,data) {
   }
 
 function program14(depth0,data) {
+  
+  var buffer = '', hashTypes, hashContexts;
+  data.buffer.push("\n      ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.view.call(depth0, "App.MediaView", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("\n    ");
+  return buffer;
+  }
+
+function program16(depth0,data) {
   
   var buffer = '', hashTypes, hashContexts;
   data.buffer.push("\n        <dl class=\"dl-horizontal\">\n          <dt>\n            ");
@@ -801,7 +838,7 @@ function program14(depth0,data) {
   return buffer;
   }
 
-function program16(depth0,data) {
+function program18(depth0,data) {
   
   
   data.buffer.push("\n        <p>No messages to display</p>\n      ");
@@ -816,10 +853,15 @@ function program16(depth0,data) {
   hashContexts = {};
   stack1 = helpers['if'].call(depth0, "isOnline", {hash:{},inverse:self.program(12, program12, data),fn:self.program(1, program1, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
-  data.buffer.push("\n\n    <hr>\n\n    <div class=\"scrollable\">\n      ");
+  data.buffer.push("\n\n    <hr>\n\n    ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers.each.call(depth0, "message", "in", "messages", {hash:{},inverse:self.program(16, program16, data),fn:self.program(14, program14, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  stack1 = helpers['if'].call(depth0, "hasMedia", {hash:{},inverse:self.noop,fn:self.program(14, program14, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  data.buffer.push("\n\n    <div class=\"scrollable\">\n      ");
+  hashTypes = {};
+  hashContexts = {};
+  stack1 = helpers.each.call(depth0, "message", "in", "messages", {hash:{},inverse:self.program(18, program18, data),fn:self.program(16, program16, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
   data.buffer.push("\n    </div>\n  </div>\n</div>\n\n");
   return buffer;
@@ -925,6 +967,31 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
 
 
   data.buffer.push("<p>Nothing to show here</p>\n");
+  
+});
+
+Ember.TEMPLATES['mediaview'] = Ember.Handlebars.template(function anonymous(Handlebars,depth0,helpers,partials,data) {
+this.compilerInfo = [4,'>= 1.0.0'];
+helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
+  var buffer = '', stack1, hashContexts, hashTypes, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+
+
+  data.buffer.push("<video ");
+  hashContexts = {'src': depth0};
+  hashTypes = {'src': "STRING"};
+  options = {hash:{
+    'src': ("view.remoteStreamSource")
+  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
+  data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
+  data.buffer.push(" autoplay controls class=\"remote-stream\"></video>\n<video ");
+  hashContexts = {'src': depth0};
+  hashTypes = {'src': "STRING"};
+  options = {hash:{
+    'src': ("view.localStreamSource")
+  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
+  data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
+  data.buffer.push(" autoplay muted class=\"local-stream\"></video>\n");
+  return buffer;
   
 });
 
@@ -47372,5 +47439,30 @@ if ( typeof define === "function" && define.amd && define.amd.jQuery ) {
 }
 
 })( window );
+},{}],17:[function(require,module,exports){
+var MediaView = Ember.View.extend({
+  templateName: 'mediaview',
+  classNames: ['media-view'],
+
+  remoteStreamSource: function () {
+    if (this.get('controller.remoteStream') === null) {
+      return;
+    }
+
+    return URL.createObjectURL(this.get('controller.remoteStream'));
+  }.property('controller.remoteStream'),
+
+  localStreamSource: function () {
+    if (this.get('controller.content.localStream') === null) {
+      return;
+    }
+
+    return URL.createObjectURL(this.get('controller.content.localStream'));
+  }.property('controller.content.localStream')
+});
+
+module.exports = MediaView;
+
+
 },{}]},{},[7])
 ;

@@ -5,7 +5,9 @@
     </div>
 
     <div class="panel-body">
-      <button class="btn btn-success" {{action 'accept' call}}><i class="fa fa-check"></i> Accept</button>
+      <button class="btn btn-success" {{action 'accept' call true false}}><i class="fa fa-check"></i> Accept</button>
+      <button class="btn btn-success" {{action 'accept' call false false}}><i class="fa fa-phone"></i> Accept with audio</button>
+      <button class="btn btn-success" {{action 'accept' call false true}}><i class="fa fa-video-camera"></i> Accept with video</button>
       <button class="btn btn-danger" {{action 'deny' call}}><i class="fa fa-times"></i> Deny</button>
     </div>
   </div>

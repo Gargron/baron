@@ -9,8 +9,6 @@
         {{#if connected}}
           <form role="form" class="form-inline">
             <button class="btn btn-danger" {{action 'hangup'}}><i class="fa fa-power-off"></i> Hang up</button>
-            <button class="btn btn-info" {{action 'toggleAudio'}}><i class="fa fa-phone"></i> Toggle audio</button>
-            <button class="btn btn-info" {{action 'toggleVideo'}}><i class="fa fa-video-camera"></i> Toggle video</button>
 
             <div class="form-group">
               {{input type="text" disabled=cannotChat value=newMessage class="form-control"}}
@@ -22,7 +20,9 @@
           {{#if waiting}}
             <p>Ringing...</p>
           {{else}}
-            <button class="btn btn-success" {{action 'start'}}><i class="fa fa-power-off"></i> Initiate text chat</button>
+            <button class="btn btn-success" {{action 'start' true false}}><i class="fa fa-power-off"></i> Initiate text chat</button>
+            <button class="btn btn-info" {{action 'start' false false}}><i class="fa fa-phone"></i> Call with audio</button>
+            <button class="btn btn-info" {{action 'start' false true}}><i class="fa fa-video-camera"></i> Call with video</button>
           {{/if}}
         {{/if}}
       {{/if}}
@@ -31,6 +31,10 @@
     {{/if}}
 
     <hr>
+
+    {{#if hasMedia}}
+      {{view App.MediaView}}
+    {{/if}}
 
     <div class="scrollable">
       {{#each message in messages}}

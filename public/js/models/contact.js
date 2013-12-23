@@ -4,6 +4,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   peer: null,
   dataChannel: null,
   signalingChannel: null,
+  localStream: null,
   connected: false,
   waiting: false,
   messages: [],
@@ -114,6 +115,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   setOutgoingStream: function (stream) {
     console.log('Adding stream', stream);
+    this.set('localStream', stream);
     this.get('peer').addStream(stream);
   },
 
@@ -166,7 +168,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   closeCall: function () {
     this.get('peer').close();
     this.set('connected', false);
+    this.set('localStream', null);
     this.init();
+    this.trigger('stream.removed');
     this.trigger('connection.closed');
   },
 

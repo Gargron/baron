@@ -1,9 +1,9 @@
 var CallsController = Ember.ArrayController.extend({
   actions: {
-    accept: function (call) {
+    accept: function (call, fake, with_video) {
       var self = this;
 
-      navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, fake: fake, video: with_video }, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
         self.get('content').removeObject(call);
