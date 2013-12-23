@@ -5,6 +5,8 @@ var List = function (user) {
 };
 
 List.prototype.add = function (user, authorized) {
+  // Thanks to the `has` hash table we ensure
+  // uniqueness of the list in O(1) time
   if (typeof this.has[user.email] === 'undefined') {
     this.list.push({
       authorized: authorized,

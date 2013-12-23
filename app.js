@@ -44,7 +44,7 @@ app.post('/auth/login', function (req, res) {
     url: 'https://verifier.login.persona.org/verify',
     form: {
       'assertion': req.body.assertion,
-      'audience': 'http://' + req.host + ':3000'
+      'audience': 'http://' + req.host + ':3000' // FIXME: site URL
     }
   }, function (err, v_res, body) {
     if (err) {
@@ -96,10 +96,14 @@ app.post('/list', function (req, res) {
 
     entry_b = lists.get(user);
 
-    entry_a.add(user);
-    entry_b.add(me);
+    // Add users to each other's contacts lists
+    // The other user did not authorize it yet, should
+    // be shown a contact request with option to remove
+    entry_a.add(user, true);
+    entry_b.add(me, false);
 
     if (user.sid != null) {
+      // Notify the other user (if online) about contact request
       io.sockets.socket(user.sid).emit('update', { type: 'list', payload: me });
     }
 
@@ -142,10 +146,11 @@ io.configure(function () {
   });
 });
 
-var notify_contacts = function (user) {
+notify_contacts = function (user) {
   var list = lists.get(user);
 
   if (list.length() > 0) {
+    // Notify people on our user's contacts list about our user's updated attributes
     list.forEach(function (contact) {
       if (contact.sid != null) {
         io.sockets.socket(contact.sid).emit('update', { type: 'user', payload: user });
@@ -158,6 +163,7 @@ io.sockets.on('connection', function (socket) {
   var user = users[socket.handshake.email];
   user.sid = socket.id;
 
+  // ~join
   notify_contacts(user);
 
   socket.on('signal', function (signal) {
@@ -173,6 +179,7 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('disconnect', function () {
     user.sid = null;
+    // ~leave
     notify_contacts(user);
   });
 });
