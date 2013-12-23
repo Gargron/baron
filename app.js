@@ -5,7 +5,7 @@ var express   = require('express'),
   server      = http.createServer(app),
   io          = require('socket.io').listen(server),
   request     = require('request'),
-  parseCookie = express.cookieParser('abUjl=9773JJHm:J'),
+  parseCookie = express.cookieParser('some-dodgy-secret'),
   List        = require('./models/list'),
   ListOfLists = require('./models/list_of_lists');
 
