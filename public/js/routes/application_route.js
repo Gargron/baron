@@ -43,7 +43,7 @@ var ApplicationRoute = Ember.Route.extend({
 
     App.getJSON('/list').then(function (list) {
       list.forEach(function (_contact) {
-        var contact = self.controllerFor('contacts')._contactFactory(_contact);
+        var contact = self.controllerFor('contacts')._contactFactory(_contact.user);
         self.controllerFor('contacts').get('content').pushObject(contact);
       });
     }, function (err) {

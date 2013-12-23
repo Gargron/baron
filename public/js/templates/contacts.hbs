@@ -2,6 +2,12 @@
   {{#each contact in controller}}
     {{#link-to 'chat' contact class="list-group-item" }}
       <h4 class="list-group-item-heading">
+        {{#if contact.isOnline}}
+          <i class="fa fa-circle"></i>
+        {{else}}
+          <i class="fa fa-circle-o"></i>
+        {{/if}}
+
         {{contact.email}}
         <span class="badge">{{contact.remoteMessagesCount}}</span>
       </h4>
@@ -14,14 +20,17 @@
       </p>
     {{/link-to}}
   {{else}}
-    <a href="#" class="list-group-item">No contacts</a>
+    <a href="#" class="list-group-item">
+      <h4 class="list-group-item-heading">No contacts</h4>
+      <p class="list-group-item-text">Add some below</p>
+    </a>
   {{/each}}
 </div>
 
-<form role="form">
+<form class="form-inline" role="form">
   <div class="form-group">
     {{input type="text" value=newContact class="form-control"}}
   </div>
 
-  <button class="btn btn-success" {{action 'add'}}>Add</button>
+  <button class="btn btn-success" {action 'add'}><i class="fa fa-plus"></i> Add</button>
 </form>

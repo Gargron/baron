@@ -8,16 +8,16 @@
       {{else}}
         {{#if connected}}
           <form role="form" class="form-inline">
-            <button class="btn btn-danger" {{action 'hangup'}}>Hang up</button>
+            <button class="btn btn-danger" {action 'hangup'}><i class="fa fa-power-off"></i> Hang up</button>
 
             <div class="form-group">
               {{input type="text" disabled=cannotChat value=newMessage class="form-control"}}
             </div>
 
-            <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {{action 'sendMessage'}}>Post</button>
+            <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {action 'sendMessage'}><i class="fa fa-mail-reply"></i> Post</button>
           </form>
         {{else}}
-          <button class="btn btn-success" {{action 'start'}}>Initiate chat</button>
+          <button class="btn btn-success" {action 'start'}<i class="fa fa-power-off"></i> Initiate chat</button>
           <!--<button class="btn" {{action 'call' false}}>Call</button>
           <button class="btn" {{action 'call' true}}>Call with video</button>-->
         {{/if}}

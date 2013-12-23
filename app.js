@@ -5,17 +5,19 @@ var express   = require('express'),
   server      = http.createServer(app),
   io          = require('socket.io').listen(server),
   request     = require('request'),
-  parseCookie = express.cookieParser('abUjl=9773JJHm:J');
+  parseCookie = express.cookieParser('abUjl=9773JJHm:J'),
+  List        = require('./models/list'),
+  ListOfLists = require('./models/list_of_lists');
 
 // TODO:
-// - Write a class to handle all lists
-// - a class to handle a specific contacts list
 // - a class to handle users that exist in the system
 // - make users and lists permanent through a database
 
-var lists  = {},
+var lists  = new ListOfLists(),
   users    = {},
   sessions = new express.session.MemoryStore();
+
+var notify_contacts;
 
 app.configure(function () {
   app.use(express.bodyParser());
@@ -78,34 +80,27 @@ app.post('/auth/logout', function (req, res) {
 });
 
 app.post('/list', function (req, res) {
-  var list_init = function (arr, key) {
-    var entry = arr[key];
-
-    if (! (entry instanceof Array)) {
-      entry = [];
-    }
-
-    return entry;
-  };
+  var me, user, entry_a, entry_b;
 
   res.set('Content-Type', 'application/json');
 
   if (req.session.email && req.body.email) {
-    var entry_a = list_init(lists, req.session.email),
-      user      = users[req.body.email];
+    me      = users[req.session.email];
+    entry_a = lists.get(me);
+    user    = users[req.body.email];
 
     if (typeof user === 'undefined') {
       res.send(404);
       return;
     }
 
-    var entry_b = list_init(lists, user.email);
+    entry_b = lists.get(user);
 
-    entry_a.push(user);
-    entry_b.push(users[req.session.email]);
+    entry_a.add(user);
+    entry_b.add(me);
 
     if (user.sid != null) {
-      io.sockets.socket(user.sid).emit('update', { type: 'list', payload: users[req.session.email] });
+      io.sockets.socket(user.sid).emit('update', { type: 'list', payload: me });
     }
 
     res.send(JSON.stringify(user));
@@ -118,13 +113,7 @@ app.get('/list', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email) {
-    var entry = lists[req.session.email];
-
-    if (! (entry instanceof Array)) {
-      entry = lists[req.session.email] = [];
-    }
-
-    res.send(JSON.stringify(entry));
+    res.send(JSON.stringify(lists.get(users[req.session.email])));
   } else {
     res.send(401);
   }
@@ -154,9 +143,9 @@ io.configure(function () {
 });
 
 var notify_contacts = function (user) {
-  var list = lists[user.email];
+  var list = lists.get(user);
 
-  if (typeof list !== 'undefined') {
+  if (list.length() > 0) {
     list.forEach(function (contact) {
       if (contact.sid != null) {
         io.sockets.socket(contact.sid).emit('update', { type: 'user', payload: user });
