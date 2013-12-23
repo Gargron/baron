@@ -72,22 +72,32 @@ app.post('/auth/logout', function (req, res) {
 });
 
 app.post('/list', function (req, res) {
+  var list_init = function (arr, key) {
+    var entry = arr[key];
+
+    if (! (entry instanceof Array)) {
+      entry = [];
+    }
+
+    return entry;
+  };
+
   res.set('Content-Type', 'application/json');
 
   if (req.session.email && req.body.email) {
-    var entry = lists[req.session.email],
-      user    = users[req.body.email];
-
-    if (! (entry instanceof Array)) {
-      entry = lists[req.session.email] = [];
-    }
+    var entry_a = list_init(lists, req.session.email),
+      user      = users[req.body.email];
 
     if (typeof user === 'undefined') {
       res.send(404);
       return;
     }
 
-    entry.push(user);
+    var entry_b = list_init(lists, user.email);
+
+    entry_a.push(user);
+    entry_b.push(users[req.session.email]);
+
     res.send(JSON.stringify(user));
   } else {
     res.send(401);
@@ -133,14 +143,26 @@ io.configure(function () {
   });
 });
 
+var notify_contacts = function (user) {
+  var list = lists[user.email];
+
+  if (typeof list !== 'undefined') {
+    list.forEach(function (contact) {
+      if (contact.sid != null) {
+        io.sockets.socket(contact.sid).emit('update', user);
+      }
+    });
+  }
+};
+
 io.sockets.on('connection', function (socket) {
   var user = users[socket.handshake.email];
   user.sid = socket.id;
 
+  notify_contacts(user);
+
   socket.on('signal', function (signal) {
     var to_user = users[signal.to];
-
-    console.log(signal, to_user);
 
     if (typeof to_user === 'undefined' || to_user.sid === null) {
       return;
@@ -152,6 +174,7 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('disconnect', function () {
     user.sid = null;
+    notify_contacts(user);
   });
 });
 
