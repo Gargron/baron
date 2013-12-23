@@ -21,6 +21,10 @@ var ContactsController = Ember.ArrayController.extend({
       var self = this;
 
       if (this.get('newContact') != null) {
+        if (this.get('content').findBy('email', this.get('newContact'))) {
+          return;
+        }
+
         App.postJSON('/list', { email: this.get('newContact') }).then(function (res) {
           self.set('newContact', null);
           self.get('content').pushObject(self._contactFactory(res));

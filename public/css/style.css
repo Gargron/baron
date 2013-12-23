@@ -1,4 +1,10 @@
 .scrollable {
-  height: 500px;
+  height: 300px;
   overflow-y: scroll;
+}
+
+.list-group-item .online-status {
+  float: right;
+  margin-top: 12px;
+  font-size: 22px;
 }

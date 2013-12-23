@@ -8,18 +8,22 @@
       {{else}}
         {{#if connected}}
           <form role="form" class="form-inline">
-            <button class="btn btn-danger" {action 'hangup'}><i class="fa fa-power-off"></i> Hang up</button>
+            <button class="btn btn-danger" {{action 'hangup'}}><i class="fa fa-power-off"></i> Hang up</button>
+            <button class="btn btn-info" {{action 'toggleAudio'}}><i class="fa fa-phone"></i> Toggle audio</button>
+            <button class="btn btn-info" {{action 'toggleVideo'}}><i class="fa fa-video-camera"></i> Toggle video</button>
 
             <div class="form-group">
               {{input type="text" disabled=cannotChat value=newMessage class="form-control"}}
             </div>
 
-            <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {action 'sendMessage'}><i class="fa fa-mail-reply"></i> Post</button>
+            <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {{action 'sendMessage'}}><i class="fa fa-mail-reply"></i> Post</button>
           </form>
         {{else}}
-          <button class="btn btn-success" {action 'start'}<i class="fa fa-power-off"></i> Initiate chat</button>
-          <!--<button class="btn" {{action 'call' false}}>Call</button>
-          <button class="btn" {{action 'call' true}}>Call with video</button>-->
+          {{#if waiting}}
+            <p>Ringing...</p>
+          {{else}}
+            <button class="btn btn-success" {{action 'start'}}><i class="fa fa-power-off"></i> Initiate text chat</button>
+          {{/if}}
         {{/if}}
       {{/if}}
     {{else}}
@@ -31,7 +35,12 @@
     <div class="scrollable">
       {{#each message in messages}}
         <dl class="dl-horizontal">
-          <dt>{{message.from.email}}</dt>
+          <dt>
+            {{message.from.email}}
+            <br>
+            <span class="text-muted">{{message.timestamp}}</span>
+          </dt>
+
           <dd>{{message.text}}</dd>
         </dl>
       {{else}}

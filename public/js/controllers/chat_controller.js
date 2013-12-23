@@ -19,7 +19,7 @@ var ChatController = Ember.ObjectController.extend({
     start: function () {
       var self = this;
 
-      navigator.mozGetUserMedia({ audio: true, fake: true }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, video: true, fake: true }, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
       }, function (err) {
@@ -27,7 +27,11 @@ var ChatController = Ember.ObjectController.extend({
       });
     },
 
-    call: function (with_video) {
+    toggleVideo: function () {
+      // TODO
+    },
+
+    toggleAudio: function () {
       // TODO
     },
 
@@ -36,9 +40,9 @@ var ChatController = Ember.ObjectController.extend({
     },
 
     sendMessage: function () {
-      var message = App.Message.create({ from: this.get('controllers.application.currentUser'), text: this.get('newMessage')});
+      var message = App.Message.create({ from: this.get('controllers.application.currentUser'), text: this.get('newMessage'), timestamp: (new Date()).getTime() });
       this.get('content').pushMessage(this.get('newMessage'));
-      this.get('content.messages').pushObject(message);
+      this.get('content.messages').unshiftObject(message);
       this.set('newMessage', '');
     }
   }

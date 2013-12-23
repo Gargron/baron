@@ -1,3 +1,5 @@
+var List = require('./list');
+
 var ListOfLists = function () {
   this.lists = {};
 };

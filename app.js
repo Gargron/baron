@@ -84,7 +84,7 @@ app.post('/list', function (req, res) {
 
   res.set('Content-Type', 'application/json');
 
-  if (req.session.email && req.body.email) {
+  if (req.session.email && req.body.email && req.session.email !== req.body.email) {
     me      = users[req.session.email];
     entry_a = lists.get(me);
     user    = users[req.body.email];
@@ -109,7 +109,7 @@ app.post('/list', function (req, res) {
 
     res.send(JSON.stringify(user));
   } else {
-    res.send(401);
+    res.send(400);
   }
 });
 
@@ -147,13 +147,13 @@ io.configure(function () {
 });
 
 notify_contacts = function (user) {
-  var list = lists.get(user);
+  var list_arr = lists.get(user).asArray();
 
-  if (list.length() > 0) {
+  if (list_arr.length > 0) {
     // Notify people on our user's contacts list about our user's updated attributes
-    list.forEach(function (contact) {
-      if (contact.sid != null) {
-        io.sockets.socket(contact.sid).emit('update', { type: 'user', payload: user });
+    list_arr.forEach(function (contact) {
+      if (contact.user.sid != null) {
+        io.sockets.socket(contact.user.sid).emit('update', { type: 'user', payload: user });
       }
     });
   }

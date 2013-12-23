@@ -5,6 +5,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   dataChannel: null,
   signalingChannel: null,
   connected: false,
+  waiting: false,
   messages: [],
 
   init: function () {
@@ -41,6 +42,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       if (connection.signalingState === 'stable') {
         console.log('Connection established');
         self.set('connected', true);
+        self.set('waiting', false);
         self.trigger('connection.opened');
       } else if (connection.signalingState === 'closed') {
         console.log('Connection closed');
@@ -93,8 +95,8 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
       } else {
-        var message = App.Message.create({ from: self, text: e.data, remote: true });
-        self.get('messages').pushObject(message);
+        var message = App.Message.create({ from: self, text: e.data, remote: true, timestamp: e.timeStamp });
+        self.get('messages').unshiftObject(message);
         self.trigger('channel.message', message);
       }
     };
@@ -173,6 +175,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       connection = this.get('peer');
 
     console.log('Offer created', offer);
+    self.set('waiting', true);
 
     connection.setLocalDescription(offer, function () {
       self.get('signalingChannel').emit('signal', {
