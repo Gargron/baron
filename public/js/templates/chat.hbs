@@ -2,36 +2,42 @@
   <div class="panel-heading">Chat with {{email}}</div>
 
   <div class="panel-body">
-    {{#if isReceivingCall}}
-      <p>{{email}} is calling you right now</p>
-    {{else}}
-      {{#if connected}}
-        <form role="form" class="form-inline">
-          <button class="btn btn-danger" {{action 'hangup'}}>Hang up</button>
-
-          <div class="form-group">
-            {{input type="text" disabled=cannotChat value=newMessage class="form-control"}}
-          </div>
-
-          <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {{action 'sendMessage'}}>Post</button>
-        </form>
+    {{#if isOnline}}
+      {{#if isReceivingCall}}
+        <p>{{email}} is calling you right now</p>
       {{else}}
-        <button class="btn btn-success" {{action 'start'}}>Initiate chat</button>
-        <button class="btn" {{action 'call' false}}>Call</button>
-        <button class="btn" {{action 'call' true}}>Call with video</button>
+        {{#if connected}}
+          <form role="form" class="form-inline">
+            <button class="btn btn-danger" {{action 'hangup'}}>Hang up</button>
+
+            <div class="form-group">
+              {{input type="text" disabled=cannotChat value=newMessage class="form-control"}}
+            </div>
+
+            <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {{action 'sendMessage'}}>Post</button>
+          </form>
+        {{else}}
+          <button class="btn btn-success" {{action 'start'}}>Initiate chat</button>
+          <!--<button class="btn" {{action 'call' false}}>Call</button>
+          <button class="btn" {{action 'call' true}}>Call with video</button>-->
+        {{/if}}
       {{/if}}
+    {{else}}
+      <p>{{email}} is currently <strong>offline</strong></p>
     {{/if}}
 
     <hr>
 
-    {{#each message in messages}}
-      <dl class="dl-horizontal">
-        <dt>{{message.from.email}}</dt>
-        <dd>{{message.text}}</dd>
-      </dl>
-    {{else}}
-      <p>No messages to display</p>
-    {{/each}}
+    <div class="scrollable">
+      {{#each message in messages}}
+        <dl class="dl-horizontal">
+          <dt>{{message.from.email}}</dt>
+          <dd>{{message.text}}</dd>
+        </dl>
+      {{else}}
+        <p>No messages to display</p>
+      {{/each}}
+    </div>
   </div>
 </div>
 

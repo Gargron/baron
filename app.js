@@ -7,6 +7,12 @@ var express   = require('express'),
   request     = require('request'),
   parseCookie = express.cookieParser('abUjl=9773JJHm:J');
 
+// TODO:
+// - Write a class to handle all lists
+// - a class to handle a specific contacts list
+// - a class to handle users that exist in the system
+// - make users and lists permanent through a database
+
 var lists  = {},
   users    = {},
   sessions = new express.session.MemoryStore();
