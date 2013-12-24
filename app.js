@@ -44,7 +44,7 @@ app.post('/auth/login', function (req, res) {
     url: 'https://verifier.login.persona.org/verify',
     form: {
       'assertion': req.body.assertion,
-      'audience': process.env.BARON_AUDIENCE || 'http://localhost:3000'
+      'audience': req.protocol + '://' + req.host + ':' + (process.env.BARON_PUBLIC_PORT || process.env.BARON_PORT || 3000)
     }
   }, function (err, v_res, body) {
     if (err) {
