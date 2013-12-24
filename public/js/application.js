@@ -970,7 +970,7 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
   
 
 
-  data.buffer.push("<p>Nothing to show here</p>\n");
+  data.buffer.push("<div class=\"jumbotron\">\n  <h1>Peer-to-peer text, audio and video IM</h1>\n  <p>Add your friends's e-mail addresses to your contacts list and you'll see when they're online and be able to chat with them.</p>\n</div>\n");
   
 });
 
