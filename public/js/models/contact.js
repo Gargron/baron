@@ -9,6 +9,13 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   waiting: false,
   messages: [],
 
+  constraints: {
+    mandatory: {
+      OfferToReceiveAudio: true,
+      OfferToReceiveAudio: true
+    }
+  },
+
   init: function () {
     var self = this,
       connection = new mozRTCPeerConnection({
@@ -135,7 +142,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     connection.createOffer(function (offer) {
       self._onCreateOffer(offer);
-    }, this._handleFailure);
+    }, this._handleFailure, self.constraints);
   },
 
   acceptCall: function (offer) {
@@ -154,7 +161,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
               payload: answer
             });
           }, self._handleFailure);
-        }, self._handleFailure);
+        }, self._handleFailure, self.constraints);
       }, self._handleFailure);
     });
   },

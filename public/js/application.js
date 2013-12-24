@@ -99,8 +99,8 @@ var ChatController = Ember.ObjectController.extend({
   remoteStream: null,
 
   hasMedia: function () {
-    return this.get('remoteStream') != null;
-  }.property('remoteStream'),
+    return this.get('remoteStream') != null && !this.get('fake');
+  }.property('remoteStream', 'fake'),
 
   cannotChat: function () {
     return !this.get('canChat');
@@ -118,6 +118,10 @@ var ChatController = Ember.ObjectController.extend({
     start: function (fake, with_video) {
       var self = this;
 
+      if (fake) {
+        this.set('fake', true);
+      }
+
       navigator.mozGetUserMedia({ audio: true, video: with_video, fake: fake }, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
@@ -126,16 +130,9 @@ var ChatController = Ember.ObjectController.extend({
       });
     },
 
-    toggleVideo: function () {
-      // TODO
-    },
-
-    toggleAudio: function () {
-      // TODO
-    },
-
     hangup: function () {
       this.get('content').closeCall();
+      this.set('fake', false);
     },
 
     sendMessage: function () {
@@ -226,6 +223,13 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   connected: false,
   waiting: false,
   messages: [],
+
+  constraints: {
+    mandatory: {
+      OfferToReceiveAudio: true,
+      OfferToReceiveAudio: true
+    }
+  },
 
   init: function () {
     var self = this,
@@ -353,7 +357,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     connection.createOffer(function (offer) {
       self._onCreateOffer(offer);
-    }, this._handleFailure);
+    }, this._handleFailure, self.constraints);
   },
 
   acceptCall: function (offer) {
@@ -372,7 +376,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
               payload: answer
             });
           }, self._handleFailure);
-        }, self._handleFailure);
+        }, self._handleFailure, self.constraints);
       }, self._handleFailure);
     });
   },
@@ -973,17 +977,19 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
 Ember.TEMPLATES['mediaview'] = Ember.Handlebars.template(function anonymous(Handlebars,depth0,helpers,partials,data) {
 this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
-  var buffer = '', stack1, hashContexts, hashTypes, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  var buffer = '', stack1, hashTypes, hashContexts, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
 
-
-  data.buffer.push("<video ");
+function program1(depth0,data) {
+  
+  var buffer = '', stack1, hashContexts, hashTypes, options;
+  data.buffer.push("\n  <video ");
   hashContexts = {'src': depth0};
   hashTypes = {'src': "STRING"};
   options = {hash:{
     'src': ("view.remoteStreamSource")
   },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
   data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
-  data.buffer.push(" autoplay controls class=\"remote-stream\"></video>\n<video ");
+  data.buffer.push(" autoplay controls class=\"remote-stream\"></video>\n  <video ");
   hashContexts = {'src': depth0};
   hashTypes = {'src': "STRING"};
   options = {hash:{
@@ -991,6 +997,28 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
   },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
   data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
   data.buffer.push(" autoplay muted class=\"local-stream\"></video>\n");
+  return buffer;
+  }
+
+function program3(depth0,data) {
+  
+  var buffer = '', stack1, hashContexts, hashTypes, options;
+  data.buffer.push("\n  <audio ");
+  hashContexts = {'src': depth0};
+  hashTypes = {'src': "STRING"};
+  options = {hash:{
+    'src': ("view.remoteStreamSource")
+  },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
+  data.buffer.push(escapeExpression(((stack1 = helpers['bind-attr'] || depth0['bind-attr']),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "bind-attr", options))));
+  data.buffer.push(" autoplay controls class=\"remote-stream-audio\"></audio>\n");
+  return buffer;
+  }
+
+  hashTypes = {};
+  hashContexts = {};
+  stack1 = helpers['if'].call(depth0, "view.hasAnyVideo", {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  data.buffer.push("\n");
   return buffer;
   
 });
@@ -47443,6 +47471,20 @@ if ( typeof define === "function" && define.amd && define.amd.jQuery ) {
 var MediaView = Ember.View.extend({
   templateName: 'mediaview',
   classNames: ['media-view'],
+
+  hasAnyVideo: function () {
+    var videoTracks = 0;
+
+    if (this.get('controller.remoteStream') != null) {
+      videoTracks += this.get('controller.remoteStream').getVideoTracks().length;
+    }
+
+    if (this.get('controller.content.localStream') != null) {
+      videoTracks += this.get('controller.content.localStream').getVideoTracks().length;
+    }
+
+    return videoTracks > 0;
+  }.property('controller.remoteStream', 'controller.content.localStream'),
 
   remoteStreamSource: function () {
     if (this.get('controller.remoteStream') === null) {

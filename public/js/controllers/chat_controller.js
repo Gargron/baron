@@ -5,8 +5,8 @@ var ChatController = Ember.ObjectController.extend({
   remoteStream: null,
 
   hasMedia: function () {
-    return this.get('remoteStream') != null;
-  }.property('remoteStream'),
+    return this.get('remoteStream') != null && !this.get('fake');
+  }.property('remoteStream', 'fake'),
 
   cannotChat: function () {
     return !this.get('canChat');
@@ -24,6 +24,10 @@ var ChatController = Ember.ObjectController.extend({
     start: function (fake, with_video) {
       var self = this;
 
+      if (fake) {
+        this.set('fake', true);
+      }
+
       navigator.mozGetUserMedia({ audio: true, video: with_video, fake: fake }, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
@@ -32,16 +36,9 @@ var ChatController = Ember.ObjectController.extend({
       });
     },
 
-    toggleVideo: function () {
-      // TODO
-    },
-
-    toggleAudio: function () {
-      // TODO
-    },
-
     hangup: function () {
       this.get('content').closeCall();
+      this.set('fake', false);
     },
 
     sendMessage: function () {

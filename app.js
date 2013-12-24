@@ -1,20 +1,20 @@
-var express   = require('express'),
-  http        = require('http'),
-  path        = require('path'),
-  app         = express(),
-  server      = http.createServer(app),
-  io          = require('socket.io').listen(server),
-  request     = require('request'),
-  parseCookie = express.cookieParser('some-dodgy-secret'),
-  List        = require('./models/list'),
-  ListOfLists = require('./models/list_of_lists');
+var express      = require('express'),
+  http           = require('http'),
+  path           = require('path'),
+  app            = express(),
+  server         = http.createServer(app),
+  io             = require('socket.io').listen(server),
+  request        = require('request'),
+  parseCookie    = express.cookieParser('some-dodgy-secret'),
+  List           = require('./models/list'),
+  ListOfLists    = require('./models/list_of_lists'),
+  UserRepository = require('./models/user_repository');
 
 // TODO:
-// - a class to handle users that exist in the system
 // - make users and lists permanent through a database
 
 var lists  = new ListOfLists(),
-  users    = {},
+  users    = new UserRepository(),
   sessions = new express.session.MemoryStore();
 
 var notify_contacts;
@@ -30,7 +30,7 @@ app.get('/auth/current', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email) {
-    var user = users[req.session.email];
+    var user = users.getByEmail(req.session.email);
     res.send(JSON.stringify(user));
   } else {
     res.send(401);
@@ -55,11 +55,7 @@ app.post('/auth/login', function (req, res) {
     var data = JSON.parse(body);
 
     if (data.status === 'okay') {
-      var user = users[data.email] = {
-        email: data.email,
-        status: 'Not set',
-        sid: null
-      };
+      var user = users.create(data.email);
 
       req.session.regenerate(function () {
         req.session.email = data.email;
@@ -85,9 +81,9 @@ app.post('/list', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email && req.body.email && req.session.email !== req.body.email) {
-    me      = users[req.session.email];
+    me      = users.getByEmail(req.session.email);
     entry_a = lists.get(me);
-    user    = users[req.body.email];
+    user    = users.getByEmail(req.body.email);
 
     if (typeof user === 'undefined') {
       res.send(404);
@@ -117,7 +113,7 @@ app.get('/list', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email) {
-    res.send(JSON.stringify(lists.get(users[req.session.email])));
+    res.send(JSON.stringify(lists.get(users.getByEmail(req.session.email))));
   } else {
     res.send(401);
   }
@@ -160,14 +156,14 @@ notify_contacts = function (user) {
 };
 
 io.sockets.on('connection', function (socket) {
-  var user = users[socket.handshake.email];
+  var user = users.getByEmail(socket.handshake.email);
   user.sid = socket.id;
 
   // ~join
   notify_contacts(user);
 
   socket.on('signal', function (signal) {
-    var to_user = users[signal.to];
+    var to_user = users.getByEmail(signal.to);
 
     if (typeof to_user === 'undefined' || to_user.sid === null) {
       return;

@@ -1,2 +1,6 @@
-<video {{bind-attr src='view.remoteStreamSource'}} autoplay controls class="remote-stream"></video>
-<video {{bind-attr src='view.localStreamSource'}} autoplay muted class="local-stream"></video>
+{{#if view.hasAnyVideo}}
+  <video {{bind-attr src='view.remoteStreamSource'}} autoplay controls class="remote-stream"></video>
+  <video {{bind-attr src='view.localStreamSource'}} autoplay muted class="local-stream"></video>
+{{else}}
+  <audio {{bind-attr src='view.remoteStreamSource'}} autoplay controls class="remote-stream-audio"></audio>
+{{/if}}

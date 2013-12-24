@@ -15,11 +15,14 @@
   position: relative;
 }
 
-.media-view .remote-stream {
+.media-view .remote-stream, .media-view .remote-stream-audio {
   display: block;
+  margin: 0 auto;
+}
+
+.media-view .remote-stream {
   height: 250px;
   width: auto;
-  margin: 0 auto;
 }
 
 .media-view .local-stream {
