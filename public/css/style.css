@@ -1,3 +1,7 @@
+.form-inline {
+  display: inline-block;
+}
+
 .scrollable {
   height: 300px;
   overflow-y: scroll;

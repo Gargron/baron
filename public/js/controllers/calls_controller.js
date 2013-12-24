@@ -3,6 +3,10 @@ var CallsController = Ember.ArrayController.extend({
     accept: function (call, fake, with_video) {
       var self = this;
 
+      if (fake) {
+        call.set('contact.fake', true);
+      }
+
       navigator.mozGetUserMedia({ audio: true, fake: fake, video: with_video }, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();

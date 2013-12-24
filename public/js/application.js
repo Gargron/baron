@@ -72,6 +72,10 @@ var CallsController = Ember.ArrayController.extend({
     accept: function (call, fake, with_video) {
       var self = this;
 
+      if (fake) {
+        call.set('contact.fake', true);
+      }
+
       navigator.mozGetUserMedia({ audio: true, fake: fake, video: with_video }, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
@@ -99,8 +103,8 @@ var ChatController = Ember.ObjectController.extend({
   remoteStream: null,
 
   hasMedia: function () {
-    return this.get('remoteStream') != null && !this.get('fake');
-  }.property('remoteStream', 'fake'),
+    return this.get('remoteStream') != null && !this.get('content.fake');
+  }.property('remoteStream', 'content.fake'),
 
   cannotChat: function () {
     return !this.get('canChat');
@@ -119,7 +123,7 @@ var ChatController = Ember.ObjectController.extend({
       var self = this;
 
       if (fake) {
-        this.set('fake', true);
+        this.set('content.fake', true);
       }
 
       navigator.mozGetUserMedia({ audio: true, video: with_video, fake: fake }, function (stream) {
@@ -132,7 +136,7 @@ var ChatController = Ember.ObjectController.extend({
 
     hangup: function () {
       this.get('content').closeCall();
-      this.set('fake', false);
+      this.set('content.fake', false);
     },
 
     sendMessage: function () {
