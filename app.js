@@ -62,7 +62,6 @@ app.post('/auth/login', function (req, res) {
         res.send(JSON.stringify(user));
       });
     } else {
-      console.log(req.protocol, req.host, process.env);
       res.send(500, 'Spoomf=3!');
     }
   });
