@@ -44,7 +44,7 @@ app.post('/auth/login', function (req, res) {
     url: 'https://verifier.login.persona.org/verify',
     form: {
       'assertion': req.body.assertion,
-      'audience': 'http://' + req.host + ':3000' // FIXME: site URL
+      'audience': process.env.BARON_AUDIENCE || 'http://localhost:3000'
     }
   }, function (err, v_res, body) {
     if (err) {
@@ -180,4 +180,4 @@ io.sockets.on('connection', function (socket) {
   });
 });
 
-server.listen(3000);
+server.listen(process.env.BARON_PORT || 3000);
