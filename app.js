@@ -48,7 +48,7 @@ app.post('/auth/login', function (req, res) {
     }
   }, function (err, v_res, body) {
     if (err) {
-      res.send(500);
+      res.send(500, err);
       return;
     }
 
@@ -62,7 +62,7 @@ app.post('/auth/login', function (req, res) {
         res.send(JSON.stringify(user));
       });
     } else {
-      res.send(500);
+      res.send(500, 'Spoomf=3!');
     }
   });
 });
