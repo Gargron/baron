@@ -7,14 +7,14 @@
         <p>{{email}} is calling you right now</p>
       {{else}}
         {{#if connected}}
-          <form role="form" class="form-inline">
-            <button class="btn btn-danger" {{action 'hangup'}}><i class="fa fa-power-off"></i> Hang up</button>
+          <button class="btn btn-danger" {{action 'hangup'}}><i class="fa fa-power-off"></i> Hang up</button>
 
+          <form role="form" class="form-inline">
             <div class="form-group">
               {{input type="text" disabled=cannotChat value=newMessage class="form-control"}}
             </div>
 
-            <button type="submit" {{bind-attr disabled=cannotChat}} class="btn btn-success" {{action 'sendMessage'}}><i class="fa fa-mail-reply"></i> Post</button>
+            <button {{bind-attr disabled=cannotChat}} class="btn btn-success" {{action 'sendMessage'}}><i class="fa fa-mail-reply"></i> Post</button>
           </form>
         {{else}}
           {{#if waiting}}

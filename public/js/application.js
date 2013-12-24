@@ -736,11 +736,11 @@ function program4(depth0,data) {
 function program5(depth0,data) {
   
   var buffer = '', stack1, hashTypes, hashContexts, options;
-  data.buffer.push("\n          <form role=\"form\" class=\"form-inline\">\n            <button class=\"btn btn-danger\" ");
+  data.buffer.push("\n          <button class=\"btn btn-danger\" ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "hangup", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("><i class=\"fa fa-power-off\"></i> Hang up</button>\n\n            <div class=\"form-group\">\n              ");
+  data.buffer.push("><i class=\"fa fa-power-off\"></i> Hang up</button>\n\n          <form role=\"form\" class=\"form-inline\">\n            <div class=\"form-group\">\n              ");
   hashContexts = {'type': depth0,'disabled': depth0,'value': depth0,'class': depth0};
   hashTypes = {'type': "STRING",'disabled': "ID",'value': "ID",'class': "STRING"};
   options = {hash:{
@@ -750,7 +750,7 @@ function program5(depth0,data) {
     'class': ("form-control")
   },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
   data.buffer.push(escapeExpression(((stack1 = helpers.input || depth0.input),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "input", options))));
-  data.buffer.push("\n            </div>\n\n            <button type=\"submit\" ");
+  data.buffer.push("\n            </div>\n\n            <button ");
   hashContexts = {'disabled': depth0};
   hashTypes = {'disabled': "ID"};
   options = {hash:{
