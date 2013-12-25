@@ -189,7 +189,6 @@ var ContactsController = Ember.ArrayController.extend({
 
         App.postJSON('/list', { email: this.get('newContact') }).then(function (res) {
           self.set('newContact', null);
-          self.get('content').pushObject(self._contactFactory(res));
         }, function (err) {
           // TODO
         });
@@ -507,9 +506,11 @@ var ApplicationRoute = Ember.Route.extend({
 
     this.controllerFor('contacts').set('content', []);
 
-    App.getJSON('/list').then(function (list) {
-      list.forEach(function (_contact) {
-        var contact = self.controllerFor('contacts')._contactFactory(_contact.user);
+    App.getJSON('/list').then(function (list_wrapper) {
+      console.log(list_wrapper);
+
+      list_wrapper.list.forEach(function (_contact) {
+        var contact = self.controllerFor('contacts')._contactFactory(_contact);
         self.controllerFor('contacts').get('content').pushObject(contact);
       });
     }, function (err) {
@@ -558,6 +559,8 @@ var ApplicationRoute = Ember.Route.extend({
       } else if (update.type === 'list') {
         var contact = self.controllerFor('contacts')._contactFactory(update.payload);
         self.controllerFor('contacts').get('content').pushObject(contact);
+      } else if (update.type === 'request') {
+        console.log(update);
       }
     });
   }

@@ -7,17 +7,15 @@ var express      = require('express'),
   request        = require('request'),
   parseCookie    = express.cookieParser('some-dodgy-secret'),
   List           = require('./models/list'),
-  ListOfLists    = require('./models/list_of_lists'),
-  UserRepository = require('./models/user_repository');
+  ListRepository = require('./models/list_repository'),
+  UserRepository = require('./models/user_repository'),
+  lists          = new ListRepository(),
+  users          = new UserRepository(),
+  sessions       = new express.session.MemoryStore(),
+  notify_contacts;
 
 // TODO:
 // - make users and lists permanent through a database
-
-var lists  = new ListOfLists(),
-  users    = new UserRepository(),
-  sessions = new express.session.MemoryStore();
-
-var notify_contacts;
 
 app.configure(function () {
   app.use(express.bodyParser());
@@ -71,39 +69,51 @@ app.post('/auth/logout', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   req.session.destroy(function () {
-    res.send(201, null);
+    res.send(201, JSON.stringify(null));
   });
 });
 
 app.post('/list', function (req, res) {
-  var me, user, entry_a, entry_b;
+  var user_a, user_b, entry_a, entry_b;
 
   res.set('Content-Type', 'application/json');
 
   if (req.session.email && req.body.email && req.session.email !== req.body.email) {
-    me      = users.getByEmail(req.session.email);
-    entry_a = lists.get(me);
-    user    = users.getByEmail(req.body.email);
+    user_a  = users.getByEmail(req.session.email);
+    user_b  = users.getByEmail(req.body.email);
 
-    if (typeof user === 'undefined') {
-      res.send(404);
+    if (typeof user_b === 'undefined') {
+      res.send(201, JSON.stringify(null));
       return;
     }
 
-    entry_b = lists.get(user);
+    entry_a = lists.get(user_a);
+    entry_b = lists.get(user_b);
 
-    // Add users to each other's contacts lists
-    // The other user did not authorize it yet, should
-    // be shown a contact request with option to remove
-    entry_a.add(user, true);
-    entry_b.add(me, false);
+    // Request approval from recipient
+    if (entry_b.hasInQueue(user_a)) {
+      entry_a.add(user_b);
+      entry_b.add(user_a);
 
-    if (user.sid != null) {
+      // Notify users (if online) about new contact in lists
+      if (user_a.sid != null) {
+        io.sockets.socket(user_a.sid).emit('update', { type: 'list', payload: user_b });
+      }
+
+      if (user_b.sid != null) {
+        io.sockets.socket(user_b.sid).emit('update', { type: 'list', payload: user_a });
+      }
+    } else {
+      entry_a.addToQueue(user_b);
+      entry_b.inviteToReciprocate(user_a);
+
       // Notify the other user (if online) about contact request
-      io.sockets.socket(user.sid).emit('update', { type: 'list', payload: me });
+      if (user_b.sid != null) {
+        io.sockets.socket(user_b.sid).emit('update', { type: 'request', payload: user_a });
+      }
     }
 
-    res.send(JSON.stringify(user));
+    res.send(201, JSON.stringify(null));
   } else {
     res.send(400);
   }

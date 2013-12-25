@@ -1,28 +1,48 @@
-var List = function (user) {
-  this.user = user;
-  this.list = [];
-  this.has  = {};
-};
+var hashToArray, List;
 
-List.prototype.add = function (user, authorized) {
-  // Thanks to the `has` hash table we ensure
-  // uniqueness of the list in O(1) time
-  if (this.has[user.email]) {
-    return;
+hashToArray = function (hash) {
+  var arr = [], key;
+
+  for (key in hash) {
+    if (hash.hasOwnProperty(key)) {
+      arr.push(hash[key]);
+    }
   }
 
-  this.list.push({
-    'authorized': authorized,
-    'user': user
-  });
+  return arr;
+};
 
-  this.has[user.email] = true;
+List = function (user) {
+  this.user  = user;
+  this.list  = {}; // Stores successful (two-way) contacts
+  this.queue = {}; // Stores who user wants to add to contacts
+  this.inbox = {}; // Stores invitations of reciprocation
+};
+
+List.prototype.add = function (user) {
+  this.list[user.email] = user;
+};
+
+List.prototype.addToQueue = function (user) {
+  this.queue[user.email] = user;
+};
+
+List.prototype.inviteToReciprocate = function (user) {
+  this.inbox[user.email] = user;
+};
+
+List.prototype.hasInQueue = function (user) {
+  return typeof this.queue[user.email] !== 'undefined';
 };
 
 List.prototype.asArray = function () {
-  return this.list;
+  // O(n) - I'm so sorry
+  return hashToArray(this.list);
 };
 
-List.prototype.toJSON = List.prototype.asArray;
+List.prototype.toJSON = function () {
+  // O(n) - I'm so sorry
+  return { list: hashToArray(this.list), inbox: hashToArray(this.inbox) };
+};
 
 module.exports = List;

@@ -1,10 +1,11 @@
-var List = require('./list');
+var List = require('./list'),
+  ListRepository;
 
-var ListOfLists = function () {
+ListRepository = function () {
   this.lists = {};
 };
 
-ListOfLists.prototype.get = function (user) {
+ListRepository.prototype.get = function (user) {
   var list = this.lists[user.email];
 
   if (! (list instanceof List)) {
@@ -15,4 +16,4 @@ ListOfLists.prototype.get = function (user) {
   return list;
 };
 
-module.exports = ListOfLists;
+module.exports = ListRepository;
