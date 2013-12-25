@@ -5,8 +5,8 @@ var ChatController = Ember.ObjectController.extend({
   remoteStream: null,
 
   hasMedia: function () {
-    return this.get('remoteStream') != null && !this.get('content.fake');
-  }.property('remoteStream', 'content.fake'),
+    return (this.get('remoteStream') != null && this.get('content.remoteMediaType') !== 'text') || (this.get('content.localStream') != null && this.get('content.localMediaType') !== 'text');
+  }.property('remoteStream', 'content.localStream', 'content.localMediaType', 'content.remoteMediaType'),
 
   cannotChat: function () {
     return !this.get('canChat');
@@ -21,14 +21,18 @@ var ChatController = Ember.ObjectController.extend({
   }.property('controllers.calls.content.@each'),
 
   actions: {
-    start: function (fake, with_video) {
+    start: function (only_text, with_video) {
       var self = this;
 
-      if (fake) {
-        this.set('content.fake', true);
+      if (only_text) {
+        this.set('content.localMediaType', 'text');
+      } else if (with_video) {
+        this.set('content.localMediaType', 'video');
+      } else {
+        this.set('content.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: fake }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: only_text }, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
       }, function (err) {

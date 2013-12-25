@@ -5,6 +5,8 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   dataChannel: null,
   signalingChannel: null,
   localStream: null,
+  localMediaType: 'text',
+  remoteMediaType: 'text',
   connected: false,
   waiting: false,
   messages: [],
@@ -145,9 +147,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     }, this._handleFailure, self.constraints);
   },
 
-  acceptCall: function (offer) {
+  acceptCall: function (offer, remoteMediaType) {
     var self = this,
       connection = this.get('peer');
+
+    this.set('remoteMediaType', remoteMediaType);
 
     this.trigger('connection.incoming', function () {
       connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
@@ -158,6 +162,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
             self.get('signalingChannel').emit('signal', {
               to: self.get('email'),
               type: 'answer',
+              media: self.get('localMediaType'),
               payload: answer
             });
           }, self._handleFailure);
@@ -166,9 +171,10 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     });
   },
 
-  finalizeCall: function (answer) {
+  finalizeCall: function (answer, remoteMediaType) {
     var self = this;
     console.log('Answer received', answer);
+    this.set('remoteMediaType', remoteMediaType);
     this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
@@ -192,6 +198,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       self.get('signalingChannel').emit('signal', {
         to: self.get('email'),
         type: 'offer',
+        media: self.get('localMediaType'),
         payload: offer
       });
     }, this._handleFailure);

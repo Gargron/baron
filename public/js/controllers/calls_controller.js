@@ -1,13 +1,17 @@
 var CallsController = Ember.ArrayController.extend({
   actions: {
-    accept: function (call, fake, with_video) {
+    accept: function (call, only_text, with_video) {
       var self = this;
 
-      if (fake) {
-        call.set('contact.fake', true);
+      if (only_text) {
+        call.set('contact.localMediaType', 'text');
+      } else if (with_video) {
+        call.set('contact.localMediaType', 'video');
+      } else {
+        call.set('contact.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, fake: fake, video: with_video }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, fake: only_text, video: with_video }, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
         self.get('content').removeObject(call);

@@ -69,14 +69,18 @@ module.exports = ApplicationController;
 },{}],4:[function(require,module,exports){
 var CallsController = Ember.ArrayController.extend({
   actions: {
-    accept: function (call, fake, with_video) {
+    accept: function (call, only_text, with_video) {
       var self = this;
 
-      if (fake) {
-        call.set('contact.fake', true);
+      if (only_text) {
+        call.set('contact.localMediaType', 'text');
+      } else if (with_video) {
+        call.set('contact.localMediaType', 'video');
+      } else {
+        call.set('contact.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, fake: fake, video: with_video }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, fake: only_text, video: with_video }, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
         self.get('content').removeObject(call);
@@ -103,8 +107,8 @@ var ChatController = Ember.ObjectController.extend({
   remoteStream: null,
 
   hasMedia: function () {
-    return this.get('remoteStream') != null && !this.get('content.fake');
-  }.property('remoteStream', 'content.fake'),
+    return (this.get('remoteStream') != null && this.get('content.remoteMediaType') !== 'text') || (this.get('content.localStream') != null && this.get('content.localMediaType') !== 'text');
+  }.property('remoteStream', 'content.localStream', 'content.localMediaType', 'content.remoteMediaType'),
 
   cannotChat: function () {
     return !this.get('canChat');
@@ -119,14 +123,18 @@ var ChatController = Ember.ObjectController.extend({
   }.property('controllers.calls.content.@each'),
 
   actions: {
-    start: function (fake, with_video) {
+    start: function (only_text, with_video) {
       var self = this;
 
-      if (fake) {
-        this.set('content.fake', true);
+      if (only_text) {
+        this.set('content.localMediaType', 'text');
+      } else if (with_video) {
+        this.set('content.localMediaType', 'video');
+      } else {
+        this.set('content.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: fake }, function (stream) {
+      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: only_text }, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
       }, function (err) {
@@ -224,6 +232,8 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   dataChannel: null,
   signalingChannel: null,
   localStream: null,
+  localMediaType: 'text',
+  remoteMediaType: 'text',
   connected: false,
   waiting: false,
   messages: [],
@@ -364,9 +374,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     }, this._handleFailure, self.constraints);
   },
 
-  acceptCall: function (offer) {
+  acceptCall: function (offer, remoteMediaType) {
     var self = this,
       connection = this.get('peer');
+
+    this.set('remoteMediaType', remoteMediaType);
 
     this.trigger('connection.incoming', function () {
       connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
@@ -377,6 +389,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
             self.get('signalingChannel').emit('signal', {
               to: self.get('email'),
               type: 'answer',
+              media: self.get('localMediaType'),
               payload: answer
             });
           }, self._handleFailure);
@@ -385,9 +398,10 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     });
   },
 
-  finalizeCall: function (answer) {
+  finalizeCall: function (answer, remoteMediaType) {
     var self = this;
     console.log('Answer received', answer);
+    this.set('remoteMediaType', remoteMediaType);
     this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
@@ -411,6 +425,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       self.get('signalingChannel').emit('signal', {
         to: self.get('email'),
         type: 'offer',
+        media: self.get('localMediaType'),
         payload: offer
       });
     }, this._handleFailure);
@@ -524,15 +539,15 @@ var ApplicationRoute = Ember.Route.extend({
       if (signal.type === 'ice') {
         target.addIceCandidate(signal.payload);
       } else if (signal.type === 'offer') {
-        target.acceptCall(signal.payload);
+        target.acceptCall(signal.payload, signal.media);
       } else if (signal.type === 'answer') {
-        target.finalizeCall(signal.payload);
+        target.finalizeCall(signal.payload, signal.media);
       }
     });
 
     connection.on('update', function (update) {
       if (update.type === 'user') {
-        var user   = update.payload,
+        var user = update.payload,
           target = self.controllerFor('contacts').get('content').findBy('email', user.email);
 
         if (typeof target === 'undefined') {
@@ -670,7 +685,11 @@ function program1(depth0,data) {
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "call.contact.email", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
-  data.buffer.push("</strong> is calling you\n    </div>\n\n    <div class=\"panel-body\">\n      <button class=\"btn btn-success\" ");
+  data.buffer.push("</strong> is calling you (<strong>");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "call.contact.remoteMediaType", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("</strong>)\n    </div>\n\n    <div class=\"panel-body\">\n      <button class=\"btn btn-success\" ");
   hashTypes = {};
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "accept", "call", true, false, {hash:{},contexts:[depth0,depth0,depth0,depth0],types:["STRING","ID","BOOLEAN","BOOLEAN"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
@@ -951,12 +970,13 @@ function program11(depth0,data) {
   stack1 = helpers.each.call(depth0, "contact", "in", "controller", {hash:{},inverse:self.program(11, program11, data),fn:self.program(1, program1, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
   data.buffer.push("\n</div>\n\n<form class=\"form-inline\" role=\"form\">\n  <div class=\"form-group\">\n    ");
-  hashContexts = {'type': depth0,'value': depth0,'class': depth0};
-  hashTypes = {'type': "STRING",'value': "ID",'class': "STRING"};
+  hashContexts = {'type': depth0,'value': depth0,'class': depth0,'placeholder': depth0};
+  hashTypes = {'type': "STRING",'value': "ID",'class': "STRING",'placeholder': "STRING"};
   options = {hash:{
     'type': ("text"),
     'value': ("newContact"),
-    'class': ("form-control")
+    'class': ("form-control"),
+    'placeholder': ("Enter friend's e-mail address")
   },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
   data.buffer.push(escapeExpression(((stack1 = helpers.input || depth0.input),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "input", options))));
   data.buffer.push("\n  </div>\n\n  <button class=\"btn btn-success\" ");

@@ -73,15 +73,15 @@ var ApplicationRoute = Ember.Route.extend({
       if (signal.type === 'ice') {
         target.addIceCandidate(signal.payload);
       } else if (signal.type === 'offer') {
-        target.acceptCall(signal.payload);
+        target.acceptCall(signal.payload, signal.media);
       } else if (signal.type === 'answer') {
-        target.finalizeCall(signal.payload);
+        target.finalizeCall(signal.payload, signal.media);
       }
     });
 
     connection.on('update', function (update) {
       if (update.type === 'user') {
-        var user   = update.payload,
+        var user = update.payload,
           target = self.controllerFor('contacts').get('content').findBy('email', user.email);
 
         if (typeof target === 'undefined') {
