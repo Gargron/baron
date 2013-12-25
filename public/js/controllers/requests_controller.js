@@ -16,4 +16,3 @@ var RequestsController = Ember.ArrayController.extend({
 });
 
 module.exports = RequestsController;
-

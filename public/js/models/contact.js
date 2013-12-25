@@ -105,7 +105,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
       } else {
-        var message = App.Message.create({ from: self, text: e.data, remote: true, timestamp: (e.timeStamp / 1000).toFixed() });
+        var message = App.Message.create({ from: self, text: e.data, remote: true, timestamp: Math.floor(e.timeStamp / 1000) });
         self.get('messages').unshiftObject(message);
         self.trigger('channel.message', message);
       }

@@ -42,7 +42,7 @@
           <dt>
             {{message.from.email}}
             <br>
-            <span class="text-muted">{{message.timestamp}}</span>
+            <abbr class="text-muted" {{bind-attr title='message.dateFull'}}>{{message.dateTime}}</abbr>
           </dt>
 
           <dd>{{message.text}}</dd>
