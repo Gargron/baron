@@ -31,6 +31,10 @@ List.prototype.inviteToReciprocate = function (user) {
   this.inbox[user.email] = user;
 };
 
+List.prototype.removeInvitation = function (email) {
+  delete this.inbox[email];
+};
+
 List.prototype.hasInQueue = function (user) {
   return typeof this.queue[user.email] !== 'undefined';
 };

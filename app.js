@@ -129,6 +129,17 @@ app.get('/list', function (req, res) {
   }
 });
 
+app.post('/list/deny', function (req, res) {
+  res.set('Content-Type', 'application/json');
+
+  if (req.session.email && req.body.email) {
+    lists.get(users.getByEmail(req.session.email)).removeInvitation(req.body.email);
+    res.send(200, JSON.stringify(null));
+  } else {
+    res.send(401);
+  }
+});
+
 io.configure(function () {
   io.set('authorization', function (handshakeData, callback) {
     if (handshakeData.headers.cookie) {
@@ -158,8 +169,8 @@ notify_contacts = function (user) {
   if (list_arr.length > 0) {
     // Notify people on our user's contacts list about our user's updated attributes
     list_arr.forEach(function (contact) {
-      if (contact.user.sid != null) {
-        io.sockets.socket(contact.user.sid).emit('update', { type: 'user', payload: user });
+      if (contact.sid != null) {
+        io.sockets.socket(contact.sid).emit('update', { type: 'user', payload: user });
       }
     });
   }

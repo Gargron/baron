@@ -1,0 +1,12 @@
+{{#each requester in controller}}
+  <div class="panel panel-info">
+    <div class="panel-heading">
+      <strong>{{requester.email}}</strong> wants to be your contact
+    </div>
+
+    <div class="panel-body">
+      <button class="btn btn-success" {{action 'accept' requester}}><i class="fa fa-check"></i> Accept</button>
+      <button class="btn btn-danger" {{action 'deny' requester}}><i class="fa fa-times"></i> Deny</button>
+    </div>
+  </div>
+{{/each}}

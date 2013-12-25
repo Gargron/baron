@@ -42,7 +42,13 @@ var ApplicationRoute = Ember.Route.extend({
     this.controllerFor('contacts').set('content', []);
 
     App.getJSON('/list').then(function (list_wrapper) {
-      console.log(list_wrapper);
+      // We have to handle two things here:
+      // - Actual contacts list
+      // - Contact requests
+
+      list_wrapper.inbox.forEach(function (_requester) {
+        self.controllerFor('requests').get('content').pushObject(_requester);
+      });
 
       list_wrapper.list.forEach(function (_contact) {
         var contact = self.controllerFor('contacts')._contactFactory(_contact);
@@ -95,7 +101,7 @@ var ApplicationRoute = Ember.Route.extend({
         var contact = self.controllerFor('contacts')._contactFactory(update.payload);
         self.controllerFor('contacts').get('content').pushObject(contact);
       } else if (update.type === 'request') {
-        console.log(update);
+        self.controllerFor('requests').get('content').pushObject(update.payload);
       }
     });
   }

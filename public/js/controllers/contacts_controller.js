@@ -1,6 +1,7 @@
 var ContactsController = Ember.ArrayController.extend({
   needs: ['application', 'calls'],
   newContact: null,
+  requests: [],
 
   _contactFactory: function (raw) {
     var self = this,
