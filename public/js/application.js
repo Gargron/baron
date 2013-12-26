@@ -456,9 +456,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     console.error(err);
   },
 
-  remoteMessagesCount: function () {
+  remoteUnreadMessagesCount: function () {
     return this.get('messages').reduce(function (aggr, el) {
-      if (el.get('remote')) {
+      if (el.get('remote') && !el.get('read')) {
         return aggr + 1;
       }
 
@@ -480,8 +480,14 @@ var Message = Ember.Object.extend({
   text: null,
   remote: false,
   timestamp: null,
+  read: false,
 
   date: function () {
+    // This is accessed when message is rendered
+    // Rendered only if the view/route is active
+    // Therefore if it's rendered, the message was read
+    this.set('read', true);
+
     return moment(this.get('timestamp'));
   }.property('timestamp'),
 
@@ -641,7 +647,7 @@ module.exports = ChatRoute;
 Ember.TEMPLATES['application'] = Ember.Handlebars.template(function anonymous(Handlebars,depth0,helpers,partials,data) {
 this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
-  var buffer = '', stack1, hashTypes, hashContexts, escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
+  var buffer = '', stack1, stack2, hashTypes, hashContexts, options, escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
 
 function program1(depth0,data) {
   
@@ -667,6 +673,12 @@ function program3(depth0,data) {
 
 function program5(depth0,data) {
   
+  
+  data.buffer.push("Baron");
+  }
+
+function program7(depth0,data) {
+  
   var buffer = '', hashTypes, hashContexts;
   data.buffer.push("\n        <small>");
   hashTypes = {};
@@ -676,7 +688,7 @@ function program5(depth0,data) {
   return buffer;
   }
 
-function program7(depth0,data) {
+function program9(depth0,data) {
   
   var buffer = '', stack1, hashTypes, hashContexts, options;
   data.buffer.push("\n    ");
@@ -707,16 +719,22 @@ function program7(depth0,data) {
   hashContexts = {};
   stack1 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
-  data.buffer.push("\n    </div>\n\n    <h1>\n      Baron\n\n      ");
+  data.buffer.push("\n    </div>\n\n    <h1>\n      ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.noop,fn:self.program(5, program5, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
-  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  options = {hash:{},inverse:self.noop,fn:self.program(5, program5, data),contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
+  stack2 = ((stack1 = helpers.linkTo || depth0.linkTo),stack1 ? stack1.call(depth0, "index", options) : helperMissing.call(depth0, "linkTo", "index", options));
+  if(stack2 || stack2 === 0) { data.buffer.push(stack2); }
+  data.buffer.push("\n\n      ");
+  hashTypes = {};
+  hashContexts = {};
+  stack2 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.noop,fn:self.program(7, program7, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack2 || stack2 === 0) { data.buffer.push(stack2); }
   data.buffer.push("\n    </h1>\n  </div>\n\n  ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.noop,fn:self.program(7, program7, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
-  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  stack2 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.noop,fn:self.program(9, program9, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack2 || stack2 === 0) { data.buffer.push(stack2); }
   data.buffer.push("\n\n</div>\n");
   return buffer;
   
@@ -954,7 +972,7 @@ function program18(depth0,data) {
 Ember.TEMPLATES['contacts'] = Ember.Handlebars.template(function anonymous(Handlebars,depth0,helpers,partials,data) {
 this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
-  var buffer = '', stack1, hashTypes, hashContexts, options, self=this, escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing;
+  var buffer = '', stack1, hashTypes, hashContexts, options, escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
@@ -985,7 +1003,12 @@ function program2(depth0,data) {
   data.buffer.push("\n      </h4>\n\n      <p class=\"list-group-item-text\">\n        ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers['if'].call(depth0, "contact.isOnline", {hash:{},inverse:self.program(9, program9, data),fn:self.program(7, program7, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  stack1 = helpers['if'].call(depth0, "contact.remoteUnreadMessagesCount", {hash:{},inverse:self.noop,fn:self.program(7, program7, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
+  data.buffer.push("\n\n        ");
+  hashTypes = {};
+  hashContexts = {};
+  stack1 = helpers['if'].call(depth0, "contact.isOnline", {hash:{},inverse:self.program(11, program11, data),fn:self.program(9, program9, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
   data.buffer.push("\n      </p>\n    ");
   return buffer;
@@ -1004,17 +1027,28 @@ function program5(depth0,data) {
 
 function program7(depth0,data) {
   
-  
-  data.buffer.push("\n          online\n        ");
+  var buffer = '', hashTypes, hashContexts;
+  data.buffer.push("\n          <span class=\"badge badge-warning\">");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers._triageMustache.call(depth0, "contact.remoteUnreadMessagesCount", {hash:{},contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push(" unread</span>\n        ");
+  return buffer;
   }
 
 function program9(depth0,data) {
   
   
-  data.buffer.push("\n          offline\n        ");
+  data.buffer.push("\n          online\n        ");
   }
 
 function program11(depth0,data) {
+  
+  
+  data.buffer.push("\n          offline\n        ");
+  }
+
+function program13(depth0,data) {
   
   
   data.buffer.push("\n    <a href=\"#\" class=\"list-group-item\">\n      <h4 class=\"list-group-item-heading\">No contacts</h4>\n      <p class=\"list-group-item-text\">Add some below</p>\n    </a>\n  ");
@@ -1023,7 +1057,7 @@ function program11(depth0,data) {
   data.buffer.push("<div class=\"list-group\">\n  ");
   hashTypes = {};
   hashContexts = {};
-  stack1 = helpers.each.call(depth0, "contact", "in", "controller", {hash:{},inverse:self.program(11, program11, data),fn:self.program(1, program1, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  stack1 = helpers.each.call(depth0, "contact", "in", "controller", {hash:{},inverse:self.program(13, program13, data),fn:self.program(1, program1, data),contexts:[depth0,depth0,depth0],types:["ID","ID","ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
   data.buffer.push("\n</div>\n\n<form class=\"form-inline\" role=\"form\">\n  <div class=\"form-group\">\n    ");
   hashContexts = {'type': depth0,'value': depth0,'class': depth0,'placeholder': depth0};
@@ -1050,7 +1084,7 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
   
 
 
-  data.buffer.push("<div class=\"jumbotron\">\n  <h1>Peer-to-peer text, audio and video IM</h1>\n  <p>Add your friends's e-mail addresses to your contacts list and you'll see when they're online and be able to chat with them.</p>\n</div>\n");
+  data.buffer.push("<div class=\"jumbotron\">\n  <h2>Peer-to-peer text, audio and video IM</h2>\n  <p>Add your friends's e-mail addresses to your contacts list and you'll see when they're online and be able to chat with them.</p>\n</div>\n\n<p>Your contact list is stored on the server. Establishment of connection goes through the server. All communication between you and your contacts, however, goes directly from your browser to your correspondent's browser via WebRTC.</p>\n");
   
 });
 

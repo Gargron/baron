@@ -92,6 +92,8 @@ app.post('/list', function (req, res) {
 
     // Request approval from recipient
     if (entry_b.hasInQueue(user_a)) {
+      entry_a.removeInvitation(user_b.email);
+      entry_b.removeFromQueue(user_a.email);
       entry_a.add(user_b);
       entry_b.add(user_a);
 

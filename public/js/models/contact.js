@@ -208,9 +208,9 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     console.error(err);
   },
 
-  remoteMessagesCount: function () {
+  remoteUnreadMessagesCount: function () {
     return this.get('messages').reduce(function (aggr, el) {
-      if (el.get('remote')) {
+      if (el.get('remote') && !el.get('read')) {
         return aggr + 1;
       }
 

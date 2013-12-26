@@ -35,6 +35,10 @@ List.prototype.removeInvitation = function (email) {
   delete this.inbox[email];
 };
 
+List.prototype.removeFromQueue = function (email) {
+  delete this.queue[email];
+};
+
 List.prototype.hasInQueue = function (user) {
   return typeof this.queue[user.email] !== 'undefined';
 };

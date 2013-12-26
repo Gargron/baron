@@ -38,3 +38,8 @@
   right: 20px;
   border: 1px solid #000;
 }
+
+a.list-group-item.active .badge {
+  background-color: #FFFFFF;
+  color: #428BCA;
+}
