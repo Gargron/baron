@@ -107,7 +107,10 @@ var ChatController = Ember.ObjectController.extend({
   remoteStream: null,
 
   hasMedia: function () {
-    return (this.get('remoteStream') != null && this.get('content.remoteMediaType') !== 'text') || (this.get('content.localStream') != null && this.get('content.localMediaType') !== 'text');
+    // We want to display the media view
+    // when either the remote or the local stream exists and isn't fake
+    return (this.get('remoteStream') != null && this.get('content.remoteMediaType') !== 'text')
+    || (this.get('content.localStream') != null && this.get('content.localMediaType') !== 'text');
   }.property('remoteStream', 'content.localStream', 'content.localMediaType', 'content.remoteMediaType'),
 
   cannotChat: function () {
@@ -144,7 +147,6 @@ var ChatController = Ember.ObjectController.extend({
 
     hangup: function () {
       this.get('content').closeCall();
-      this.set('content.fake', false);
     },
 
     sendMessage: function () {
@@ -428,6 +430,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   closeCall: function () {
     this.get('peer').close();
+    this.set('waiting', false);
     this.set('connected', false);
     this.set('localStream', null);
     this.init();
@@ -468,7 +471,13 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   isOnline: function () {
     return this.get('sid') != null;
-  }.property('sid')
+  }.property('sid'),
+
+  _handleOnlineState: function () {
+    if (this.get('sid') === null && this.get('waiting')) {
+      this.closeCall();
+    }
+  }.observes('sid')
 });
 
 module.exports = Contact;

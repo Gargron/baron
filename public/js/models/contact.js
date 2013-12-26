@@ -180,6 +180,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   closeCall: function () {
     this.get('peer').close();
+    this.set('waiting', false);
     this.set('connected', false);
     this.set('localStream', null);
     this.init();
@@ -220,7 +221,13 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   isOnline: function () {
     return this.get('sid') != null;
-  }.property('sid')
+  }.property('sid'),
+
+  _handleOnlineState: function () {
+    if (this.get('sid') === null && this.get('waiting')) {
+      this.closeCall();
+    }
+  }.observes('sid')
 });
 
 module.exports = Contact;

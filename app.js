@@ -5,7 +5,7 @@ var express      = require('express'),
   server         = http.createServer(app),
   io             = require('socket.io').listen(server),
   request        = require('request'),
-  parseCookie    = express.cookieParser('some-dodgy-secret'),
+  parseCookie    = express.cookieParser(process.env.BARON_SECRET),
   List           = require('./models/list'),
   ListRepository = require('./models/list_repository'),
   UserRepository = require('./models/user_repository'),
@@ -13,6 +13,14 @@ var express      = require('express'),
   users          = new UserRepository(),
   sessions       = new express.session.MemoryStore(),
   notify_contacts;
+
+// Environmental variables:
+// - BARON_SECRET - no default, cookie secret
+// - BARON_PORT - 3000 by default, port under which NodeJS is run
+// - BARON_PUBLIC_PORT - no default, port under which users access the site (could be 80 or 443!)
+//
+// Currently, the socket.io client assumes socket.io is accessible from the same port
+// as the user is accessing the site
 
 // TODO:
 // - make users and lists permanent through a database
