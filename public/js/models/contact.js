@@ -220,14 +220,14 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   }.property('messages.@each'),
 
   isOnline: function () {
-    return this.get('sid') != null;
-  }.property('sid'),
+    return this.get('online') > 0;
+  }.property('online'),
 
   _handleOnlineState: function () {
-    if (this.get('sid') === null && this.get('waiting')) {
+    if (!this.get('isOnline') && this.get('waiting')) {
       this.closeCall();
     }
-  }.observes('sid')
+  }.observes('isOnline')
 });
 
 module.exports = Contact;

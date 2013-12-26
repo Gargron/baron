@@ -11,13 +11,11 @@ var CallsController = Ember.ArrayController.extend({
         call.set('contact.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, fake: only_text, video: with_video }, function (stream) {
+      App.getUserMedia(!only_text, with_video, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
         self.get('content').removeObject(call);
         self.transitionToRoute('chat', call.get('contact'));
-      }, function (err) {
-        // TODO
       });
     },
 

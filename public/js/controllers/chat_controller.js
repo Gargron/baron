@@ -35,11 +35,9 @@ var ChatController = Ember.ObjectController.extend({
         this.set('content.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: only_text }, function (stream) {
+      App.getUserMedia(!only_text, with_video, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
-      }, function (err) {
-        console.error(err);
       });
     },
 

@@ -106,21 +106,14 @@ app.post('/list', function (req, res) {
       entry_b.add(user_a);
 
       // Notify users (if online) about new contact in lists
-      if (user_a.sid != null) {
-        io.sockets.socket(user_a.sid).emit('update', { type: 'list', payload: user_b });
-      }
-
-      if (user_b.sid != null) {
-        io.sockets.socket(user_b.sid).emit('update', { type: 'list', payload: user_a });
-      }
+      io.sockets.in(user_a.email).emit('update', { type: 'list', payload: user_b });
+      io.sockets.in(user_b.email).emit('update', { type: 'list', payload: user_a });
     } else {
       entry_a.addToQueue(user_b);
       entry_b.inviteToReciprocate(user_a);
 
       // Notify the other user (if online) about contact request
-      if (user_b.sid != null) {
-        io.sockets.socket(user_b.sid).emit('update', { type: 'request', payload: user_a });
-      }
+      io.sockets.in(user_b.email).emit('update', { type: 'request', payload: user_a });
     }
 
     res.send(201, JSON.stringify(null));
@@ -179,35 +172,34 @@ notify_contacts = function (user) {
   if (list_arr.length > 0) {
     // Notify people on our user's contacts list about our user's updated attributes
     list_arr.forEach(function (contact) {
-      if (contact.sid != null) {
-        io.sockets.socket(contact.sid).emit('update', { type: 'user', payload: user });
-      }
+      io.sockets.in(contact.email).emit('update', { type: 'user', payload: user });
     });
   }
 };
 
 io.sockets.on('connection', function (socket) {
   var user = users.getByEmail(socket.handshake.email);
-  user.sid = socket.id;
+  user.online++;
 
   // ~join
   notify_contacts(user);
+  socket.join(user.email);
 
   socket.on('signal', function (signal) {
     var to_user = users.getByEmail(signal.to);
 
-    if (typeof to_user === 'undefined' || to_user.sid === null) {
+    if (typeof to_user === 'undefined') {
       return;
     }
 
     signal.from = user.email;
-    io.sockets.socket(to_user.sid).emit('signal', signal);
+    io.sockets.in(to_user.email).emit('signal', signal);
   });
 
   socket.on('disconnect', function () {
-    user.sid = null;
     // ~leave
     notify_contacts(user);
+    user.online--;
   });
 });
 

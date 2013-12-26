@@ -14,7 +14,7 @@ UserRepository.prototype.create = function (email) {
     return existing;
   }
 
-  user = { email: email, status: 'Not set', sid: null };
+  user = { email: email, status: 'Not set', online: 0 };
   this.users[email] = user;
   return user;
 };

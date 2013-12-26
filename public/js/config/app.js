@@ -27,6 +27,18 @@ var App = Ember.Application.createWithMixins({
         promise.reject(err);
       });
     });
+  },
+
+  getUserMedia: function (audio, video, callback) {
+    var fake;
+
+    if (!audio && !video) {
+      fake = true;
+    }
+
+    navigator.mozGetUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
+      console.error(err);
+    });
   }
 });
 

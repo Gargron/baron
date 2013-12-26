@@ -28,6 +28,18 @@ var App = Ember.Application.createWithMixins({
         promise.reject(err);
       });
     });
+  },
+
+  getUserMedia: function (audio, video, callback) {
+    var fake;
+
+    if (!audio && !video) {
+      fake = true;
+    }
+
+    navigator.mozGetUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
+      console.error(err);
+    });
   }
 });
 
@@ -80,13 +92,11 @@ var CallsController = Ember.ArrayController.extend({
         call.set('contact.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, fake: only_text, video: with_video }, function (stream) {
+      App.getUserMedia(!only_text, with_video, function (stream) {
         call.get('contact').setOutgoingStream(stream);
         call.get('accept')();
         self.get('content').removeObject(call);
         self.transitionToRoute('chat', call.get('contact'));
-      }, function (err) {
-        // TODO
       });
     },
 
@@ -137,11 +147,9 @@ var ChatController = Ember.ObjectController.extend({
         this.set('content.localMediaType', 'audio');
       }
 
-      navigator.mozGetUserMedia({ audio: true, video: with_video, fake: only_text }, function (stream) {
+      App.getUserMedia(!only_text, with_video, function (stream) {
         self.get('content').setOutgoingStream(stream);
         self.get('content').prepareCall();
-      }, function (err) {
-        console.error(err);
       });
     },
 
@@ -470,14 +478,14 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   }.property('messages.@each'),
 
   isOnline: function () {
-    return this.get('sid') != null;
-  }.property('sid'),
+    return this.get('online') > 0;
+  }.property('online'),
 
   _handleOnlineState: function () {
-    if (this.get('sid') === null && this.get('waiting')) {
+    if (!this.get('isOnline') && this.get('waiting')) {
       this.closeCall();
     }
-  }.observes('sid')
+  }.observes('isOnline')
 });
 
 module.exports = Contact;
