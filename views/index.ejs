@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
   <meta http-equiv="X-UA-Compatible" content="IE=Edge">
-	<meta charset="utf-8">
-	<title>Baron</title>
+  <meta charset="utf-8">
+  <title>Baron</title>
   <link rel="stylesheet" href="/css/bootstrap.min.css">
   <link rel="stylesheet" href="/css/font-awesome.min.css">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <script>
+    var BARON_AUDIENCE      = '<%= baron_audience %>',
+      BARON_SOCKET_AUDIENCE = '<%= baron_socket_audience %>';
+  </script>
+
   <script src="https://login.persona.org/include.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/vendor/moment-with-langs.js"></script>

@@ -64,7 +64,7 @@ var ApplicationRoute = Ember.Route.extend({
       this.controller.get('connection').close();
     }
 
-    this.controller.set('connection', io.connect('http://' + window.location.host));
+    this.controller.set('connection', io.connect(BARON_SOCKET_ADDR));
 
     var connection = this.controller.get('connection'),
       self = this;

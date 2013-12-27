@@ -12,12 +12,13 @@ var express      = require('express'),
   lists          = new ListRepository(),
   users          = new UserRepository(),
   sessions       = new express.session.MemoryStore(),
-  notify_contacts;
+  notify_contacts, PORT, AUDIENCE, SOCKET_AUDIENCE;
 
 // Environmental variables:
 // - BARON_SECRET - no default, cookie secret
 // - BARON_PORT - 3000 by default, port under which NodeJS is run
-// - BARON_PUBLIC_PORT - no default, port under which users access the site (could be 80 or 443!)
+// - BARON_AUDIENCE - Address of pub. accessible website
+// - BARON_SOCKET_AUDIENCE - Address of pub. accessible socket.io instance, fallback to BARON_AUDIENCE
 //
 // Currently, the socket.io client assumes socket.io is accessible from the same port
 // as the user is accessing the site
@@ -25,11 +26,24 @@ var express      = require('express'),
 // TODO:
 // - make users and lists permanent through a database
 
+PORT            = process.env.BARON_PORT || 3000;
+AUDIENCE        = process.env.BARON_AUDIENCE || ('http://localhost:' + PORT);
+SOCKET_AUDIENCE = process.env.BARON_SOCKET_AUDIENCE || AUDIENCE;
+
 app.configure(function () {
   app.use(express.bodyParser());
   app.use(parseCookie);
   app.use(express.session({ store: sessions }));
   app.use(express.static(path.join(__dirname, 'public')));
+});
+
+app.get('/', function (req, res) {
+  res.render('index.ejs', {
+    locals: {
+      baron_audience: AUDIENCE,
+      baron_socket_audience: SOCKET_AUDIENCE
+    }
+  });
 });
 
 app.get('/auth/current', function (req, res) {
@@ -50,7 +64,7 @@ app.post('/auth/login', function (req, res) {
     url: 'https://verifier.login.persona.org/verify',
     form: {
       'assertion': req.body.assertion,
-      'audience': req.protocol + '://' + req.host + ':' + (process.env.BARON_PUBLIC_PORT || process.env.BARON_PORT || 3000)
+      'audience': AUDIENCE
     }
   }, function (err, v_res, body) {
     if (err) {
@@ -68,7 +82,7 @@ app.post('/auth/login', function (req, res) {
         res.send(JSON.stringify(user));
       });
     } else {
-      res.send(500, 'Spoomf=3!');
+      res.send(500, 'Mozilla Persona verification failed');
     }
   });
 });
@@ -203,4 +217,4 @@ io.sockets.on('connection', function (socket) {
   });
 });
 
-server.listen(process.env.BARON_PORT || 3000);
+server.listen(PORT);

@@ -200,6 +200,7 @@ var ContactsController = Ember.ArrayController.extend({
     contact.on('connection.incoming', function (accept) {
       var request = Ember.Object.create({ contact: contact, accept: accept });
       self.get('controllers.calls.content').pushObject(request);
+      App.getAttention();
     });
 
     return contact;
@@ -603,7 +604,7 @@ var ApplicationRoute = Ember.Route.extend({
       this.controller.get('connection').close();
     }
 
-    this.controller.set('connection', io.connect('http://' + window.location.host));
+    this.controller.set('connection', io.connect(BARON_SOCKET_ADDR));
 
     var connection = this.controller.get('connection'),
       self = this;
@@ -658,6 +659,10 @@ var ChatRoute = Ember.Route.extend({
 
     model.on('channel.closed', function () {
       controller.set('canChat', false);
+    });
+
+    model.on('channel.message', function () {
+      App.getAttention();
     });
 
     model.on('stream.added', function (stream) {
