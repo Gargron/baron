@@ -18,7 +18,10 @@
           </form>
         {{else}}
           {{#if waiting}}
-            <p>Ringing...</p>
+            <p>
+              <button class="btn btn-danger" {{action 'drop'}}><i class="fa fa-times"></i> Cancel</button>
+              Ringing...
+            </p>
           {{else}}
             <button class="btn btn-success" {{action 'start' true false}}><i class="fa fa-power-off"></i> Initiate text chat</button>
             <button class="btn btn-info" {{action 'start' false false}}><i class="fa fa-phone"></i> Call with audio</button>

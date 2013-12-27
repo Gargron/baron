@@ -15,6 +15,12 @@ var ContactsController = Ember.ArrayController.extend({
       App.getAttention();
     });
 
+    contact.on('connection.closed', function () {
+      self.get('controllers.calls.content').removeObjects(self.get('controllers.calls.content').filter(function (request) {
+        return request.get('contact') === contact;
+      }));
+    });
+
     return contact;
   },
 

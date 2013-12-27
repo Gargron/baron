@@ -212,8 +212,8 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('disconnect', function () {
     // ~leave
-    notify_contacts(user);
     user.online--;
+    notify_contacts(user);
   });
 });
 

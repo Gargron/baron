@@ -117,6 +117,7 @@ var CallsController = Ember.ArrayController.extend({
     },
 
     deny: function (call) {
+      call.get('contact').dropCallOffer();
       this.get('content').removeObject(call);
     }
   }
@@ -169,6 +170,10 @@ var ChatController = Ember.ObjectController.extend({
       });
     },
 
+    drop: function () {
+      this.get('content').dropCallOffer();
+    },
+
     hangup: function () {
       this.get('content').closeCall();
     },
@@ -201,6 +206,12 @@ var ContactsController = Ember.ArrayController.extend({
       var request = Ember.Object.create({ contact: contact, accept: accept });
       self.get('controllers.calls.content').pushObject(request);
       App.getAttention();
+    });
+
+    contact.on('connection.closed', function () {
+      self.get('controllers.calls.content').removeObjects(self.get('controllers.calls.content').filter(function (request) {
+        return request.get('contact') === contact;
+      }));
     });
 
     return contact;
@@ -453,6 +464,15 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
+  dropCallOffer: function () {
+    this.closeCall();
+
+    this.get('signalingChannel').emit('signal', {
+      to: this.get('email'),
+      type: 'drop'
+    });
+  },
+
   closeCall: function () {
     this.get('peer').close();
     this.set('waiting', false);
@@ -499,8 +519,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   }.property('online'),
 
   _handleOnlineState: function () {
-    if (!this.get('isOnline') && this.get('waiting')) {
-      this.closeCall();
+    if (!this.get('isOnline')) {
+      this.trigger('connection.closed');
+
+      if (this.get('waiting')) {
+        this.closeCall();
+      }
     }
   }.observes('isOnline')
 });
@@ -604,7 +628,7 @@ var ApplicationRoute = Ember.Route.extend({
       this.controller.get('connection').close();
     }
 
-    this.controller.set('connection', io.connect(BARON_SOCKET_ADDR));
+    this.controller.set('connection', io.connect(BARON_SOCKET_AUDIENCE));
 
     var connection = this.controller.get('connection'),
       self = this;
@@ -624,6 +648,8 @@ var ApplicationRoute = Ember.Route.extend({
         target.acceptCall(signal.payload, signal.media);
       } else if (signal.type === 'answer') {
         target.finalizeCall(signal.payload, signal.media);
+      } else if (signal.type === 'drop') {
+        target.closeCall();
       }
     });
 
@@ -745,18 +771,6 @@ function program7(depth0,data) {
   return buffer;
   }
 
-function program9(depth0,data) {
-  
-  var buffer = '', stack1, hashTypes, hashContexts, options;
-  data.buffer.push("\n    ");
-  hashTypes = {};
-  hashContexts = {};
-  options = {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
-  data.buffer.push(escapeExpression(((stack1 = helpers.render || depth0.render),stack1 ? stack1.call(depth0, "index", options) : helperMissing.call(depth0, "render", "index", options))));
-  data.buffer.push("\n  ");
-  return buffer;
-  }
-
   data.buffer.push("<div class=\"container\">\n\n  <nav class=\"navbar navbar-default\" role=\"navigation\">\n    <div class=\"navbar-header\">\n      ");
   hashContexts = {'class': depth0};
   hashTypes = {'class': "STRING"};
@@ -773,7 +787,7 @@ function program9(depth0,data) {
   data.buffer.push("\n      </form>\n    </div>\n  </nav>\n\n  ");
   hashTypes = {};
   hashContexts = {};
-  stack2 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.program(9, program9, data),fn:self.program(7, program7, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
+  stack2 = helpers['if'].call(depth0, "currentUser", {hash:{},inverse:self.noop,fn:self.program(7, program7, data),contexts:[depth0],types:["ID"],hashContexts:hashContexts,hashTypes:hashTypes,data:data});
   if(stack2 || stack2 === 0) { data.buffer.push(stack2); }
   data.buffer.push("\n\n</div>\n");
   return buffer;
@@ -908,8 +922,13 @@ function program7(depth0,data) {
   }
 function program8(depth0,data) {
   
-  
-  data.buffer.push("\n            <p>Ringing...</p>\n          ");
+  var buffer = '', hashTypes, hashContexts;
+  data.buffer.push("\n            <p>\n              <button class=\"btn btn-danger\" ");
+  hashTypes = {};
+  hashContexts = {};
+  data.buffer.push(escapeExpression(helpers.action.call(depth0, "drop", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
+  data.buffer.push("><i class=\"fa fa-times\"></i> Cancel</button>\n              Ringing...\n            </p>\n          ");
+  return buffer;
   }
 
 function program10(depth0,data) {

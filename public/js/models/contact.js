@@ -178,6 +178,15 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
+  dropCallOffer: function () {
+    this.closeCall();
+
+    this.get('signalingChannel').emit('signal', {
+      to: this.get('email'),
+      type: 'drop'
+    });
+  },
+
   closeCall: function () {
     this.get('peer').close();
     this.set('waiting', false);
@@ -224,8 +233,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   }.property('online'),
 
   _handleOnlineState: function () {
-    if (!this.get('isOnline') && this.get('waiting')) {
-      this.closeCall();
+    if (!this.get('isOnline')) {
+      this.trigger('connection.closed');
+
+      if (this.get('waiting')) {
+        this.closeCall();
+      }
     }
   }.observes('isOnline')
 });

@@ -20,6 +20,7 @@ var CallsController = Ember.ArrayController.extend({
     },
 
     deny: function (call) {
+      call.get('contact').dropCallOffer();
       this.get('content').removeObject(call);
     }
   }

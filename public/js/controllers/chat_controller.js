@@ -41,6 +41,10 @@ var ChatController = Ember.ObjectController.extend({
       });
     },
 
+    drop: function () {
+      this.get('content').dropCallOffer();
+    },
+
     hangup: function () {
       this.get('content').closeCall();
     },

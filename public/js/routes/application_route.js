@@ -64,7 +64,7 @@ var ApplicationRoute = Ember.Route.extend({
       this.controller.get('connection').close();
     }
 
-    this.controller.set('connection', io.connect(BARON_SOCKET_ADDR));
+    this.controller.set('connection', io.connect(BARON_SOCKET_AUDIENCE));
 
     var connection = this.controller.get('connection'),
       self = this;
@@ -84,6 +84,8 @@ var ApplicationRoute = Ember.Route.extend({
         target.acceptCall(signal.payload, signal.media);
       } else if (signal.type === 'answer') {
         target.finalizeCall(signal.payload, signal.media);
+      } else if (signal.type === 'drop') {
+        target.closeCall();
       }
     });
 
