@@ -7,6 +7,8 @@ require('../vendor/ember');
 require('../vendor/bootstrap.min');
 
 var App = Ember.Application.createWithMixins({
+  hasFocus: true,
+
   getJSON: function (url) {
     return this.postJSON(url, {}, 'GET');
   },
@@ -38,6 +40,20 @@ var App = Ember.Application.createWithMixins({
 
     navigator.mozGetUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
       console.error(err);
+    });
+  },
+
+  getAttention: function () {
+    // TODO
+  },
+
+  ready: function () {
+    var self = this;
+
+    $(window).on('focus', function () {
+      self.set('hasFocus', true);
+    }).on('blur', function () {
+      self.set('hasFocus', false);
     });
   }
 });

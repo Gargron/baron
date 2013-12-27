@@ -12,6 +12,7 @@ var ContactsController = Ember.ArrayController.extend({
     contact.on('connection.incoming', function (accept) {
       var request = Ember.Object.create({ contact: contact, accept: accept });
       self.get('controllers.calls.content').pushObject(request);
+      App.getAttention();
     });
 
     return contact;

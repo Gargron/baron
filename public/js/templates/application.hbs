@@ -1,22 +1,21 @@
 <div class="container">
 
-  <div class="page-header">
-    <div class="pull-right">
-      {{#if currentUser}}
-        <button {{action 'logout'}} class="btn">Logout</button>
-      {{else}}
-        <button {{action 'login'}} class="btn btn-primary">Login with Mozilla Persona</button>
-      {{/if}}
+  <nav class="navbar navbar-default" role="navigation">
+    <div class="navbar-header">
+      {{#linkTo 'index' class="navbar-brand"}}Baron{{/linkTo}}
     </div>
 
-    <h1>
-      {{#linkTo 'index'}}Baron{{/linkTo}}
-
-      {{#if currentUser}}
-        <small>{{currentUser.email}}</small>
-      {{/if}}
-    </h1>
-  </div>
+    <div class="collapse navbar-collapse">
+      <form class="navbar-form navbar-right">
+        {{#if currentUser}}
+          {{currentUser.email}}
+          <button {{action 'logout'}} class="btn btn-default">Logout</button>
+        {{else}}
+          <button {{action 'login'}} class="btn btn-primary">Login with Mozilla Persona</button>
+        {{/if}}
+      </form>
+    </div>
+  </nav>
 
   {{#if currentUser}}
     {{render 'calls'}}
@@ -31,6 +30,8 @@
         {{outlet}}
       </div>
     </div>
+  {{else}}
+    {{render 'index'}}
   {{/if}}
 
 </div>
