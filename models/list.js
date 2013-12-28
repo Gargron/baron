@@ -19,26 +19,6 @@ List = function (user) {
   this.inbox = {}; // Stores invitations of reciprocation
 };
 
-List.prototype.add = function (user) {
-  this.list[user.email] = user;
-};
-
-List.prototype.addToQueue = function (user) {
-  this.queue[user.email] = user;
-};
-
-List.prototype.inviteToReciprocate = function (user) {
-  this.inbox[user.email] = user;
-};
-
-List.prototype.removeInvitation = function (email) {
-  delete this.inbox[email];
-};
-
-List.prototype.removeFromQueue = function (email) {
-  delete this.queue[email];
-};
-
 List.prototype.hasInQueue = function (user) {
   return typeof this.queue[user.email] !== 'undefined';
 };

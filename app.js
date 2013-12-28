@@ -1,5 +1,6 @@
 var express      = require('express'),
   http           = require('http'),
+  fs             = require('fs')
   path           = require('path'),
   app            = express(),
   server         = http.createServer(app),
@@ -12,16 +13,16 @@ var express      = require('express'),
   lists          = new ListRepository(),
   users          = new UserRepository(),
   sessions       = new express.session.MemoryStore(),
-  notify_contacts, PORT, AUDIENCE, SOCKET_AUDIENCE;
+  pg             = require('pg');
+
+var notify_contacts, db_config, setupDB, PORT, AUDIENCE, SOCKET_AUDIENCE;
 
 // Environmental variables:
 // - BARON_SECRET - no default, cookie secret
 // - BARON_PORT - 3000 by default, port under which NodeJS is run
 // - BARON_AUDIENCE - Address of pub. accessible website
 // - BARON_SOCKET_AUDIENCE - Address of pub. accessible socket.io instance, fallback to BARON_AUDIENCE
-//
-// Currently, the socket.io client assumes socket.io is accessible from the same port
-// as the user is accessing the site
+// - BARON_ENV - database environment, default dev
 
 // TODO:
 // - make users and lists permanent through a database
@@ -29,12 +30,24 @@ var express      = require('express'),
 PORT            = process.env.BARON_PORT || 3000;
 AUDIENCE        = process.env.BARON_AUDIENCE || ('http://localhost:' + PORT);
 SOCKET_AUDIENCE = process.env.BARON_SOCKET_AUDIENCE || AUDIENCE;
+ENV             = process.env.BARON_ENV || 'dev';
+
+db_config = JSON.parse(fs.readFileSync('./database.json'));
+db_config = db_config[ENV];
+
+setupDB = function (req, res, next) {
+  req.pg = new pg.Client('postgres://' + db_config.user + ':' + db_config.password + '@' + db_config.host + '/' + db_config.database);
+  req.pg.connect(next);
+};
 
 app.configure(function () {
   app.use(express.bodyParser());
   app.use(parseCookie);
   app.use(express.session({ store: sessions }));
   app.use(express.static(path.join(__dirname, 'public')));
+
+  // Provide a fresh database connection for each request
+  app.use(setupDB);
 });
 
 app.get('/', function (req, res) {
@@ -50,8 +63,9 @@ app.get('/auth/current', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email) {
-    var user = users.getByEmail(req.session.email);
-    res.send(JSON.stringify(user));
+    users.getByEmail(req.pg, req.session.email).then(function (user) {
+      res.send(JSON.stringify(user));
+    }).done();
   } else {
     res.send(401);
   }
@@ -75,12 +89,15 @@ app.post('/auth/login', function (req, res) {
     var data = JSON.parse(body);
 
     if (data.status === 'okay') {
-      var user = users.create(data.email);
-
-      req.session.regenerate(function () {
-        req.session.email = data.email;
-        res.send(JSON.stringify(user));
-      });
+      users.create(req.pg, data.email).then(function (user) {
+        req.session.regenerate(function () {
+          req.session.email = data.email;
+          res.send(JSON.stringify(user));
+        });
+      }, function (err) {
+        console.error(err);
+        res.send(500, 'A wild error appeared');
+      }).done();
     } else {
       res.send(500, 'Mozilla Persona verification failed');
     }
@@ -101,36 +118,48 @@ app.post('/list', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email && req.body.email && req.session.email !== req.body.email) {
-    user_a  = users.getByEmail(req.session.email);
-    user_b  = users.getByEmail(req.body.email);
+    users.getByEmail(req.pg, req.session.email).then(function (_user) {
+      if (typeof _user === 'undefined') {
+        throw new Error('Cannot find user');
+      }
 
-    if (typeof user_b === 'undefined') {
+      user_a = _user;
+      return users.getByEmail(req.pg, req.body.email);
+    }).then(function (_user) {
+      if (typeof _user === 'undefined') {
+        throw new Error('Cannot find user');
+      }
+
+      user_b = _user;
+      return lists.get(req.pg, user_a);
+    }).then(function (_list) {
+      entry_a = _list;
+      return lists.get(req.pg, user_b);
+    }).then(function (_list) {
+      entry_b = _list;
+
+      if (entry_b.hasInQueue(user_a)) {
+        return lists.upgradeInvitation(req.pg, entry_a, user_b.email).then(function () {
+          return lists.upgradeQueue(req.pg, entry_b, user_a.email);
+        }).then(function () {
+          // Notify users (if online) about new contact in lists
+          io.sockets.in(user_a.email).emit('update', { type: 'list', payload: user_b });
+          io.sockets.in(user_b.email).emit('update', { type: 'list', payload: user_a });
+        });
+      } else {
+        return lists.addToQueue(req.pg, entry_a, user_b).then(function () {
+          return lists.inviteToReciprocate(req.pg, entry_b, user_a);
+        }).then(function () {
+          // Notify the other user (if online) about contact request
+          io.sockets.in(user_b.email).emit('update', { type: 'request', payload: user_a });
+        });
+      }
+    }).then(function () {
       res.send(201, JSON.stringify(null));
-      return;
-    }
-
-    entry_a = lists.get(user_a);
-    entry_b = lists.get(user_b);
-
-    // Request approval from recipient
-    if (entry_b.hasInQueue(user_a)) {
-      entry_a.removeInvitation(user_b.email);
-      entry_b.removeFromQueue(user_a.email);
-      entry_a.add(user_b);
-      entry_b.add(user_a);
-
-      // Notify users (if online) about new contact in lists
-      io.sockets.in(user_a.email).emit('update', { type: 'list', payload: user_b });
-      io.sockets.in(user_b.email).emit('update', { type: 'list', payload: user_a });
-    } else {
-      entry_a.addToQueue(user_b);
-      entry_b.inviteToReciprocate(user_a);
-
-      // Notify the other user (if online) about contact request
-      io.sockets.in(user_b.email).emit('update', { type: 'request', payload: user_a });
-    }
-
-    res.send(201, JSON.stringify(null));
+    }).fail(function (err) {
+      console.error(err);
+      res.send(201, JSON.stringify(null));
+    }).done();
   } else {
     res.send(400);
   }
@@ -140,7 +169,11 @@ app.get('/list', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email) {
-    res.send(JSON.stringify(lists.get(users.getByEmail(req.session.email))));
+    users.getByEmail(req.pg, req.session.email).then(function (user) {
+      return lists.get(req.pg, user);
+    }).then(function (list) {
+      res.send(JSON.stringify(list));
+    }).done();
   } else {
     res.send(401);
   }
@@ -150,8 +183,13 @@ app.post('/list/deny', function (req, res) {
   res.set('Content-Type', 'application/json');
 
   if (req.session.email && req.body.email) {
-    lists.get(users.getByEmail(req.session.email)).removeInvitation(req.body.email);
-    res.send(200, JSON.stringify(null));
+    users.getByEmail(req.pg, req.session.email).then(function (user) {
+      return lists.get(req.pg, user);
+    }).then(function (list) {
+      return lists.removeInvitation(req.pg, list, req.body.email);
+    }).then(function (list) {
+      res.send(200, JSON.stringify(null));
+    }).done();
   } else {
     res.send(401);
   }
@@ -180,40 +218,62 @@ io.configure(function () {
   });
 });
 
-notify_contacts = function (user) {
-  var list_arr = lists.get(user).asArray();
+notify_contacts = function (db, user) {
+  lists.get(db, user).then(function (list) {
+    var list_arr = list.asArray();
 
-  if (list_arr.length > 0) {
-    // Notify people on our user's contacts list about our user's updated attributes
-    list_arr.forEach(function (contact) {
-      io.sockets.in(contact.email).emit('update', { type: 'user', payload: user });
-    });
-  }
+    if (list_arr.length > 0) {
+      // Notify people on our user's contacts list about our user's updated attributes
+      list_arr.forEach(function (contact) {
+        io.sockets.in(contact.email).emit('update', { type: 'user', payload: user });
+      });
+    }
+  });
 };
 
 io.sockets.on('connection', function (socket) {
-  var user = users.getByEmail(socket.handshake.email);
-  user.online++;
+  var req = {}, user;
 
-  // ~join
-  notify_contacts(user);
-  socket.join(user.email);
+  setupDB(req, {}, function (err) {
+    users.getByEmail(req.pg, socket.handshake.email).then(function (_user) {
+      return users.incrementOnlineCounter(req.pg, _user.id);
+    }).then(function (_user) {
+      user = _user;
+
+      // ~join
+      notify_contacts(req.pg, _user);
+      socket.join(_user.email);
+    }).done();
+  });
 
   socket.on('signal', function (signal) {
-    var to_user = users.getByEmail(signal.to);
-
-    if (typeof to_user === 'undefined') {
+    if (typeof user === 'undefined') {
       return;
     }
 
-    signal.from = user.email;
-    io.sockets.in(to_user.email).emit('signal', signal);
+    setupDB(req, {}, function (err) {
+      users.getByEmail(signal.to).then(function (to_user) {
+        if (typeof to_user === 'undefined') {
+          return;
+        }
+
+        signal.from = user.email;
+        io.sockets.in(to_user.email).emit('signal', signal);
+      }).done();
+    });
   });
 
   socket.on('disconnect', function () {
-    // ~leave
-    user.online--;
-    notify_contacts(user);
+    if (typeof user === 'undefined') {
+      return;
+    }
+
+    setupDB(req, {}, function (err) {
+      users.decrementOnlineCounter(req.pg, user.id).then(function (_user) {
+        // ~leave
+        notify_contacts(req.pg, _user);
+      }).done();
+    });
   });
 });
 
