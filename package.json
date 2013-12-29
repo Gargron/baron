@@ -1,7 +1,7 @@
 {
   "name": "baron",
   "description": "Baron is a WebRTC-based Skype alternative for the browser",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "dependencies": {
     "socket.io": "0.9.x",
