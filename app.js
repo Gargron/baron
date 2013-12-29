@@ -249,7 +249,7 @@ io.sockets.on('connection', function (socket) {
     }
 
     setupDB(req, {}, function (err) {
-      users.getByEmail(signal.to).then(function (to_user) {
+      users.getByEmail(req.pg, signal.to).then(function (to_user) {
         if (typeof to_user === 'undefined') {
           return;
         }
