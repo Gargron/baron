@@ -7,6 +7,31 @@ The back-end is written in JavaScript (Node.js), the signaling channel uses Sock
 
 Currently a work in progress.
 
+Configuration
+-------------
+
+Some configuration is stored in environmental variables. Database-related configuration is stored in the database.json file in the root of the application. Here is an overview:
+
+* `BARON_SECRET` - no default, cookie secret
+* `BARON_PORT` - `3000` by default, port under which NodeJS is run
+* `BARON_AUDIENCE` - Address of publically accessible website (required for Mozilla Persona verification)
+* `BARON_SOCKET_AUDIENCE` - Address of publically accessible socket.io instance, fallback to `BARON_AUDIENCE`
+* `BARON_ENV` - database environment to use, default is `dev`
+
+The database.json file ought to look like this:
+
+```json
+{
+  "dev": {
+    "driver": "pg",
+    "user": "baron",
+    "password": "some-password",
+    "host": "127.0.0.1",
+    "database": "baron"
+  }
+}
+```
+
 Contributing
 ------------
 

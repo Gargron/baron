@@ -6,16 +6,16 @@ var express      = require('express'),
   server         = http.createServer(app),
   io             = require('socket.io').listen(server),
   request        = require('request'),
+  pg             = require('pg'),
   parseCookie    = express.cookieParser(process.env.BARON_SECRET || 'some-dodgy-secret'),
   List           = require('./models/list'),
   ListRepository = require('./models/list_repository'),
   UserRepository = require('./models/user_repository'),
   lists          = new ListRepository(),
   users          = new UserRepository(),
-  sessions       = new express.session.MemoryStore(),
-  pg             = require('pg');
+  sessions       = new express.session.MemoryStore();
 
-var notify_contacts, db_config, setupDB, PORT, AUDIENCE, SOCKET_AUDIENCE;
+var notifyContacts, setupDB, db_config, PORT, AUDIENCE, SOCKET_AUDIENCE;
 
 // Environmental variables:
 // - BARON_SECRET - no default, cookie secret
@@ -23,9 +23,6 @@ var notify_contacts, db_config, setupDB, PORT, AUDIENCE, SOCKET_AUDIENCE;
 // - BARON_AUDIENCE - Address of pub. accessible website
 // - BARON_SOCKET_AUDIENCE - Address of pub. accessible socket.io instance, fallback to BARON_AUDIENCE
 // - BARON_ENV - database environment, default dev
-
-// TODO:
-// - make users and lists permanent through a database
 
 PORT            = process.env.BARON_PORT || 3000;
 AUDIENCE        = process.env.BARON_AUDIENCE || ('http://localhost:' + PORT);
@@ -218,7 +215,7 @@ io.configure(function () {
   });
 });
 
-notify_contacts = function (db, user) {
+notifyContacts = function (db, user) {
   lists.get(db, user).then(function (list) {
     var list_arr = list.asArray();
 
@@ -241,7 +238,7 @@ io.sockets.on('connection', function (socket) {
       user = _user;
 
       // ~join
-      notify_contacts(req.pg, _user);
+      notifyContacts(req.pg, _user);
       socket.join(_user.email);
     }).done();
   });
@@ -271,7 +268,7 @@ io.sockets.on('connection', function (socket) {
     setupDB(req, {}, function (err) {
       users.decrementOnlineCounter(req.pg, user.id).then(function (_user) {
         // ~leave
-        notify_contacts(req.pg, _user);
+        notifyContacts(req.pg, _user);
       }).done();
     });
   });
