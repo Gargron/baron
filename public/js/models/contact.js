@@ -20,7 +20,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   init: function () {
     var self = this,
-      connection = new mozRTCPeerConnection({
+      connection = new RTCPeerConnection({
         "iceServers": [
           { "url": "stun:stun.services.mozilla.com" },
           { "url": "stun:stun.l.google.com:19302" }
@@ -119,7 +119,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   },
 
   addIceCandidate: function (candidate) {
-    this.get('peer').addIceCandidate(new mozRTCIceCandidate(candidate));
+    this.get('peer').addIceCandidate(new RTCIceCandidate(candidate));
   },
 
   setOutgoingStream: function (stream) {
@@ -154,7 +154,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     this.set('remoteMediaType', remoteMediaType);
 
     this.trigger('connection.incoming', function () {
-      connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
+      connection.setRemoteDescription(new RTCSessionDescription(offer), function () {
         connection.createAnswer(function (answer) {
           connection.setLocalDescription(answer, function () {
             console.log('Answer created', offer);
@@ -175,7 +175,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     var self = this;
     console.log('Answer received', answer);
     this.set('remoteMediaType', remoteMediaType);
-    this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
+    this.get('peer').setRemoteDescription(new RTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
   dropCallOffer: function () {

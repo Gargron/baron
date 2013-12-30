@@ -6,6 +6,23 @@ require('../vendor/handlebars');
 require('../vendor/ember');
 require('../vendor/bootstrap.min');
 
+// Polyfilling RTC support between different browser vendors
+if (typeof navigator.getUserMedia === 'undefined') {
+  navigator.getUserMedia = navigator.mozGetUserMedia || navigator.webkitGetUserMedia;
+}
+
+if (typeof window.RTCPeerConnection === 'undefined') {
+  window.RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+}
+
+if (typeof window.RTCSessionDescription === 'undefined') {
+  window.RTCSessionDescription = window.mozRTCSessionDescription || window.webkitRTCSessionDescription;
+}
+
+if (typeof window.RTCIceCandidate === 'undefined') {
+  window.RTCIceCandidate = window.mozRTCIceCandidate || window.webkitRTCIceCandidate;
+}
+
 var App = Ember.Application.createWithMixins({
   hasFocus: true,
 
@@ -38,7 +55,7 @@ var App = Ember.Application.createWithMixins({
       fake = true;
     }
 
-    navigator.mozGetUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
+    navigator.getUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
       console.error(err);
     });
   },

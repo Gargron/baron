@@ -274,4 +274,15 @@ io.sockets.on('connection', function (socket) {
   });
 });
 
+// Before we start the server, it's important we reset everyone's online counters
+// in the database, because previous shutdown might not have left a clean state
+
+(function () {
+  var req = {};
+
+  setupDB(req, {}, function (err) {
+    req.pg.query('UPDATE users SET online = 0');
+  });
+}());
+
 server.listen(PORT);

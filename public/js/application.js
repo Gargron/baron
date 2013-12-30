@@ -7,6 +7,23 @@ require('../vendor/handlebars');
 require('../vendor/ember');
 require('../vendor/bootstrap.min');
 
+// Polyfilling RTC support between different browser vendors
+if (typeof navigator.getUserMedia === 'undefined') {
+  navigator.getUserMedia = navigator.mozGetUserMedia || navigator.webkitGetUserMedia;
+}
+
+if (typeof window.RTCPeerConnection === 'undefined') {
+  window.RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+}
+
+if (typeof window.RTCSessionDescription === 'undefined') {
+  window.RTCSessionDescription = window.mozRTCSessionDescription || window.webkitRTCSessionDescription;
+}
+
+if (typeof window.RTCIceCandidate === 'undefined') {
+  window.RTCIceCandidate = window.mozRTCIceCandidate || window.webkitRTCIceCandidate;
+}
+
 var App = Ember.Application.createWithMixins({
   hasFocus: true,
 
@@ -39,7 +56,7 @@ var App = Ember.Application.createWithMixins({
       fake = true;
     }
 
-    navigator.mozGetUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
+    navigator.getUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
       console.error(err);
     });
   },
@@ -315,7 +332,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
   init: function () {
     var self = this,
-      connection = new mozRTCPeerConnection({
+      connection = new RTCPeerConnection({
         "iceServers": [
           { "url": "stun:stun.services.mozilla.com" },
           { "url": "stun:stun.l.google.com:19302" }
@@ -414,7 +431,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   },
 
   addIceCandidate: function (candidate) {
-    this.get('peer').addIceCandidate(new mozRTCIceCandidate(candidate));
+    this.get('peer').addIceCandidate(new RTCIceCandidate(candidate));
   },
 
   setOutgoingStream: function (stream) {
@@ -449,7 +466,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     this.set('remoteMediaType', remoteMediaType);
 
     this.trigger('connection.incoming', function () {
-      connection.setRemoteDescription(new mozRTCSessionDescription(offer), function () {
+      connection.setRemoteDescription(new RTCSessionDescription(offer), function () {
         connection.createAnswer(function (answer) {
           connection.setLocalDescription(answer, function () {
             console.log('Answer created', offer);
@@ -470,7 +487,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     var self = this;
     console.log('Answer received', answer);
     this.set('remoteMediaType', remoteMediaType);
-    this.get('peer').setRemoteDescription(new mozRTCSessionDescription(answer), function () {}, this._handleFailure);
+    this.get('peer').setRemoteDescription(new RTCSessionDescription(answer), function () {}, this._handleFailure);
   },
 
   dropCallOffer: function () {
@@ -894,13 +911,14 @@ function program5(depth0,data) {
   hashContexts = {};
   data.buffer.push(escapeExpression(helpers.action.call(depth0, "hangup", {hash:{},contexts:[depth0],types:["STRING"],hashContexts:hashContexts,hashTypes:hashTypes,data:data})));
   data.buffer.push("><i class=\"fa fa-power-off\"></i> Hang up</button>\n\n          <form role=\"form\" class=\"form-inline\">\n            <div class=\"form-group\">\n              ");
-  hashContexts = {'type': depth0,'disabled': depth0,'value': depth0,'class': depth0};
-  hashTypes = {'type': "STRING",'disabled': "ID",'value': "ID",'class': "STRING"};
+  hashContexts = {'type': depth0,'disabled': depth0,'value': depth0,'class': depth0,'autocomplete': depth0};
+  hashTypes = {'type': "STRING",'disabled': "ID",'value': "ID",'class': "STRING",'autocomplete': "STRING"};
   options = {hash:{
     'type': ("text"),
     'disabled': ("cannotChat"),
     'value': ("newMessage"),
-    'class': ("form-control")
+    'class': ("form-control"),
+    'autocomplete': ("off")
   },contexts:[],types:[],hashContexts:hashContexts,hashTypes:hashTypes,data:data};
   data.buffer.push(escapeExpression(((stack1 = helpers.input || depth0.input),stack1 ? stack1.call(depth0, options) : helperMissing.call(depth0, "input", options))));
   data.buffer.push("\n            </div>\n\n            <button ");
