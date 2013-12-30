@@ -61,7 +61,15 @@ var App = Ember.Application.createWithMixins({
   },
 
   getAttention: function () {
-    // TODO
+    App.sounds['bloop'].play();
+  },
+
+  getOverlyAttachedAttention: function () {
+    // TODO: start notifying
+
+    return function () {
+      // TODO: stop notifying
+    };
   },
 
   ready: function () {
@@ -78,6 +86,10 @@ var App = Ember.Application.createWithMixins({
 App.Router = Ember.Router.extend({
   location: 'none'
 });
+
+App.sounds = {
+  'bloop': new Audio('../../sounds/ping.wav')
+};
 
 module.exports = App;
 
