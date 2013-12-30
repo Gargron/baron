@@ -10,6 +10,15 @@ var ContactsController = Ember.ArrayController.extend({
     contact.set('signalingChannel', this.get('controllers.application.connection'));
 
     contact.on('connection.incoming', function (accept) {
+      if (contact.get('waiting')) {
+        // While we receive this offer, we have actually sent an offer before
+        // We should reset our own offer, and just answer this one
+        contact.get('peer').close();
+        contact.init();
+        accept();
+        return;
+      }
+
       var request = Ember.Object.create({ contact: contact, accept: accept });
       self.get('controllers.calls.content').pushObject(request);
       App.getAttention();
