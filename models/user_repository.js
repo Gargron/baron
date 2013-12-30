@@ -50,7 +50,7 @@ UserRepository.prototype.create = function (db, email) {
   var self = this;
 
   return this.getByEmail(db, email).then(function (existing) {
-    var user, deferred;
+    var deferred;
 
     deferred = q.defer();
 
@@ -58,15 +58,13 @@ UserRepository.prototype.create = function (db, email) {
       return existing;
     }
 
-    db.query('INSERT INTO users (email, online) VALUES ($1, $2)', [email, 0], function (err, result) {
+    db.query('INSERT INTO users (email, online) VALUES ($1, 0) RETURNING id', [email], function (err, result) {
       if (err) {
         deferred.reject(err);
         return;
       }
 
-      self.getByEmail(db, email).then(function (user) {
-        deferred.resolve(user);
-      });
+      deferred.resolve({ id: result.rows[0].id, email: email, online: 0 });
     });
 
     return deferred.promise;
