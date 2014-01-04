@@ -256,6 +256,8 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('signal', function (signal) {
+    var req = {};
+
     if (typeof user === 'undefined') {
       return;
     }
@@ -275,6 +277,8 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('disconnect', function () {
+    var req = {};
+
     if (typeof user === 'undefined') {
       return;
     }
