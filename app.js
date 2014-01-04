@@ -226,7 +226,7 @@ io.configure(function () {
 });
 
 notifyContacts = function (db, user) {
-  lists.get(db, user).then(function (list) {
+  return lists.get(db, user).then(function (list) {
     var list_arr = list.asArray();
 
     if (list_arr.length > 0) {
@@ -248,8 +248,8 @@ io.sockets.on('connection', function (socket) {
       user = _user;
 
       // ~join
-      notifyContacts(req.pg, _user);
       socket.join(_user.email);
+      return notifyContacts(req.pg, _user);
     }).fin(function () {
       req.pg.end();
     }).done();
@@ -286,7 +286,7 @@ io.sockets.on('connection', function (socket) {
     setupDB(req, {}, function (err) {
       users.decrementOnlineCounter(req.pg, user.id).then(function (_user) {
         // ~leave
-        notifyContacts(req.pg, _user);
+        return notifyContacts(req.pg, _user);
       }).fin(function () {
         req.pg.end();
       }).done();
