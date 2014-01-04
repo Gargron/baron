@@ -153,7 +153,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     this.set('remoteMediaType', remoteMediaType);
 
-    this.trigger('connection.incoming', function () {
+    this.trigger('connection.incoming', function (connection_overwrite) {
+      if (typeof connection_overwrite !== 'undefined') {
+        connection = connection_overwrite;
+      }
+
       connection.setRemoteDescription(new RTCSessionDescription(offer), function () {
         connection.createAnswer(function (answer) {
           connection.setLocalDescription(answer, function () {

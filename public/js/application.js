@@ -62,14 +62,18 @@ var App = Ember.Application.createWithMixins({
   },
 
   getAttention: function () {
-    App.sounds['bloop'].play();
+    var sound = new Audio(App.soundsPaths['bloop']);
+    sound.play();
   },
 
   getOverlyAttachedAttention: function () {
-    // TODO: start notifying
+    var sound = new Audio(App.soundsPaths['bloop']);
+    sound.loop = true;
+    sound.play();
 
     return function () {
-      // TODO: stop notifying
+      sound.pause();
+      sound = null;
     };
   },
 
@@ -88,8 +92,8 @@ App.Router = Ember.Router.extend({
   location: 'none'
 });
 
-App.sounds = {
-  'bloop': new Audio('../../sounds/ping.wav')
+App.soundsPaths = {
+  'bloop': '../../sounds/ping.wav'
 };
 
 module.exports = App;
@@ -232,16 +236,28 @@ var ContactsController = Ember.ArrayController.extend({
     contact.set('signalingChannel', this.get('controllers.application.connection'));
 
     contact.on('connection.incoming', function (accept) {
+      var stopAttention, request;
+
       if (contact.get('waiting')) {
         // While we receive this offer, we have actually sent an offer before
         // We should reset our own offer, and just answer this one
-        accept();
+        contact.get('peer').close();
+        contact.init();
+        accept(contact.get('peer')); // Overwriting connection object with the new one
         return;
       }
 
-      var request = Ember.Object.create({ contact: contact, accept: accept });
+      stopAttention = App.getOverlyAttachedAttention();
+
+      request = Ember.Object.create({
+        contact: contact,
+        accept: function () {
+          stopAttention();
+          accept();
+        }
+      });
+
       self.get('controllers.calls.content').pushObject(request);
-      App.getAttention();
     });
 
     contact.on('connection.closed', function () {
@@ -475,7 +491,11 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     this.set('remoteMediaType', remoteMediaType);
 
-    this.trigger('connection.incoming', function () {
+    this.trigger('connection.incoming', function (connection_overwrite) {
+      if (typeof connection_overwrite !== 'undefined') {
+        connection = connection_overwrite;
+      }
+
       connection.setRemoteDescription(new RTCSessionDescription(offer), function () {
         connection.createAnswer(function (answer) {
           connection.setLocalDescription(answer, function () {

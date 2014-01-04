@@ -61,14 +61,18 @@ var App = Ember.Application.createWithMixins({
   },
 
   getAttention: function () {
-    App.sounds['bloop'].play();
+    var sound = new Audio(App.soundsPaths['bloop']);
+    sound.play();
   },
 
   getOverlyAttachedAttention: function () {
-    // TODO: start notifying
+    var sound = new Audio(App.soundsPaths['bloop']);
+    sound.loop = true;
+    sound.play();
 
     return function () {
-      // TODO: stop notifying
+      sound.pause();
+      sound = null;
     };
   },
 
@@ -87,8 +91,8 @@ App.Router = Ember.Router.extend({
   location: 'none'
 });
 
-App.sounds = {
-  'bloop': new Audio('../../sounds/ping.wav')
+App.soundsPaths = {
+  'bloop': '../../sounds/ping.wav'
 };
 
 module.exports = App;
