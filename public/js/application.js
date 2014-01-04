@@ -150,6 +150,7 @@ var CallsController = Ember.ArrayController.extend({
     },
 
     deny: function (call) {
+      call.get('deny')();
       call.get('contact').dropCallOffer();
       this.get('content').removeObject(call);
     }
@@ -254,6 +255,9 @@ var ContactsController = Ember.ArrayController.extend({
         accept: function () {
           stopAttention();
           accept();
+        },
+        deny: function () {
+          stopAttention();
         }
       });
 

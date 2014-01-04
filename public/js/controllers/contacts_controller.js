@@ -28,6 +28,9 @@ var ContactsController = Ember.ArrayController.extend({
         accept: function () {
           stopAttention();
           accept();
+        },
+        deny: function () {
+          stopAttention();
         }
       });
 
