@@ -62,6 +62,8 @@ app.get('/auth/current', function (req, res) {
   if (req.session.email) {
     users.getByEmail(req.pg, req.session.email).then(function (user) {
       res.send(JSON.stringify(user));
+    }).fin(function () {
+      req.pg.end();
     }).done();
   } else {
     res.send(401);
@@ -94,6 +96,8 @@ app.post('/auth/login', function (req, res) {
       }, function (err) {
         console.error(err);
         res.send(500, 'A wild error appeared');
+      }).fin(function () {
+        req.pg.end();
       }).done();
     } else {
       res.send(500, 'Mozilla Persona verification failed');
@@ -156,6 +160,8 @@ app.post('/list', function (req, res) {
     }).fail(function (err) {
       console.error(err);
       res.send(201, JSON.stringify(null));
+    }).fin(function () {
+      req.pg.end();
     }).done();
   } else {
     res.send(400);
@@ -170,6 +176,8 @@ app.get('/list', function (req, res) {
       return lists.get(req.pg, user);
     }).then(function (list) {
       res.send(JSON.stringify(list));
+    }).fin(function () {
+      req.pg.end();
     }).done();
   } else {
     res.send(401);
@@ -186,6 +194,8 @@ app.post('/list/deny', function (req, res) {
       return lists.removeInvitation(req.pg, list, req.body.email);
     }).then(function (list) {
       res.send(200, JSON.stringify(null));
+    }).fin(function () {
+      req.pg.end();
     }).done();
   } else {
     res.send(401);
@@ -240,6 +250,8 @@ io.sockets.on('connection', function (socket) {
       // ~join
       notifyContacts(req.pg, _user);
       socket.join(_user.email);
+    }).fin(function () {
+      req.pg.end();
     }).done();
   });
 
@@ -256,6 +268,8 @@ io.sockets.on('connection', function (socket) {
 
         signal.from = user.email;
         io.sockets.in(to_user.email).emit('signal', signal);
+      }).fin(function () {
+        req.pg.end();
       }).done();
     });
   });
@@ -269,6 +283,8 @@ io.sockets.on('connection', function (socket) {
       users.decrementOnlineCounter(req.pg, user.id).then(function (_user) {
         // ~leave
         notifyContacts(req.pg, _user);
+      }).fin(function () {
+        req.pg.end();
       }).done();
     });
   });
@@ -281,7 +297,9 @@ io.sockets.on('connection', function (socket) {
   var req = {};
 
   setupDB(req, {}, function (err) {
-    req.pg.query('UPDATE users SET online = 0');
+    req.pg.query('UPDATE users SET online = 0', function (err, result) {
+      req.pg.end();
+    });
   });
 }());
 
