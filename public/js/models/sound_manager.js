@@ -2,7 +2,18 @@ var SoundManager = Ember.Object.extend({});
 
 SoundManager.reopenClass({
   paths: {
+    /**
+     * Ping.wav
+     * by hoobtastic
+     * <http://www.freesound.org/people/hoobtastic/sounds/124357/>
+     */
     'ping': '../../sounds/ping.wav',
+
+    /**
+     * BakelitePhoneRing.wav
+     * by HerbertBoland
+     * <http://www.freesound.org/people/HerbertBoland/sounds/29952/>
+     */
     'ring': '../../sounds/ring.wav'
   },
 
