@@ -10,7 +10,7 @@ var ChatRoute = Ember.Route.extend({
 
     if (model.get('isOnline') && !model.get('connected')) {
       // Automatically try to establish a text connection
-      App.getUserMedia(false, false, function (stream) {
+      App.getUserMedia(false, false).then(function (stream) {
         model.set('localMediaType', 'text');
         model.setOutgoingStream(stream);
         model.prepareCall();

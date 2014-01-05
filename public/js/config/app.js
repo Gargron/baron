@@ -55,25 +55,33 @@ var App = Ember.Application.createWithMixins({
       fake = true;
     }
 
-    navigator.getUserMedia({ audio: audio, video: video, fake: fake }, callback, function (err) {
-      console.error(err);
+    return Ember.Deferred.promise(function (promise) {
+      if (typeof navigator.mozGetUserMedia === 'undefined' && fake) {
+        // Only Mozilla understands and needs the "fake" constraint
+        // If this is not Mozilla, and we need a fake stream, just let
+        // it return null
+        Ember.run(promise, promise.resolve, null);
+        return;
+      }
+
+      navigator.getUserMedia({
+        audio: audio,
+        video: video,
+        fake: fake
+      }, function (stream) {
+        Ember.run(promise, promise.resolve, stream);
+      }, function (err) {
+        promise.reject(err);
+      });
     });
   },
 
   getAttention: function () {
-    var sound = new Audio(App.soundsPaths['bloop']);
-    sound.play();
+    return App.SoundManager.playOnce('ping');
   },
 
   getOverlyAttachedAttention: function () {
-    var sound = new Audio(App.soundsPaths['bloop']);
-    sound.loop = true;
-    sound.play();
-
-    return function () {
-      sound.pause();
-      sound = null;
-    };
+    return App.SoundManager.playUntil('ring');
   },
 
   ready: function () {
@@ -90,10 +98,6 @@ var App = Ember.Application.createWithMixins({
 App.Router = Ember.Router.extend({
   location: 'none'
 });
-
-App.soundsPaths = {
-  'bloop': '../../sounds/ping.wav'
-};
 
 module.exports = App;
 

@@ -199,10 +199,15 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     this.get('peer').close();
     this.set('waiting', false);
     this.set('connected', false);
-    this.set('localStream', null);
-    this.init();
+
+    if (this.get('localStream') != null) {
+      this.get('localStream').stop();
+      this.set('localStream', null);
+    }
+
     this.trigger('stream.removed');
     this.trigger('connection.closed');
+    this.init();
   },
 
   _onCreateOffer: function (offer) {
