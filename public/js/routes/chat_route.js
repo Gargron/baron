@@ -1,17 +1,5 @@
 var ChatRoute = Ember.Route.extend({
   setupController: function (controller, model) {
-    model.on('channel.opened', function () {
-      controller.set('canChat', true);
-    });
-
-    model.on('channel.closed', function () {
-      controller.set('canChat', false);
-    });
-
-    model.on('channel.message', function () {
-      App.getAttention();
-    });
-
     model.on('stream.added', function (stream) {
       controller.set('remoteStream', stream);
     });
@@ -19,6 +7,15 @@ var ChatRoute = Ember.Route.extend({
     model.on('stream.removed', function () {
       controller.set('remoteStream', null);
     });
+
+    if (model.get('isOnline') && !model.get('connected')) {
+      // Automatically try to establish a text connection
+      App.getUserMedia(false, false, function (stream) {
+        model.set('localMediaType', 'text');
+        model.setOutgoingStream(stream);
+        model.prepareCall();
+      });
+    }
 
     controller.set('content', model);
   }

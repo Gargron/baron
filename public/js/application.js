@@ -164,7 +164,6 @@ module.exports = CallsController;
 var ChatController = Ember.ObjectController.extend({
   needs: ['application', 'calls'],
   newMessage: null,
-  canChat: false,
   remoteStream: null,
 
   hasMedia: function () {
@@ -175,8 +174,8 @@ var ChatController = Ember.ObjectController.extend({
   }.property('remoteStream', 'content.localStream', 'content.localMediaType', 'content.remoteMediaType'),
 
   cannotChat: function () {
-    return !this.get('canChat');
-  }.property('canChat'),
+    return !this.get('content.hasChannel');
+  }.property('content.hasChannel'),
 
   isReceivingCall: function () {
     var self = this;
@@ -236,6 +235,10 @@ var ContactsController = Ember.ArrayController.extend({
 
     contact.set('signalingChannel', this.get('controllers.application.connection'));
 
+    contact.on('channel.message', function () {
+      App.getAttention();
+    });
+
     contact.on('connection.incoming', function (accept) {
       var stopAttention, request;
 
@@ -244,8 +247,12 @@ var ContactsController = Ember.ArrayController.extend({
         // We should reset our own offer, and just answer this one
         contact.get('peer').close();
         contact.init();
-        accept(contact.get('peer')); // Overwriting connection object with the new one
-        return;
+        return accept(contact.get('peer')); // Overwriting connection object with the new one
+      }
+
+      if (contact.get('remoteMediaType') === 'text') {
+        // Automatically accept incoming text connections
+        return accept();
       }
 
       stopAttention = App.getOverlyAttachedAttention();
@@ -350,6 +357,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   localMediaType: 'text',
   remoteMediaType: 'text',
   connected: false,
+  hasChannel: false,
   waiting: false,
   messages: [],
 
@@ -431,6 +439,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     };
 
     this.set('peer', connection);
+    this.set('messages', []);
   },
 
   _bindDataEvents: function (channel) {
@@ -438,11 +447,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     channel.onopen = function () {
       console.log('Channel opened', channel);
+      self.set('hasChannel', true);
       self.trigger('channel.opened');
     };
 
     channel.onmessage = function (e) {
-      console.log('Message received', e);
+      console.log('Message received', self, e);
 
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
@@ -455,6 +465,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     channel.onclose = function () {
       console.log('Channel closed', channel);
+      self.set('hasChannel', false);
       self.closeCall();
       self.trigger('channel.closed');
     };
@@ -739,18 +750,6 @@ module.exports = ApplicationRoute;
 },{}],12:[function(require,module,exports){
 var ChatRoute = Ember.Route.extend({
   setupController: function (controller, model) {
-    model.on('channel.opened', function () {
-      controller.set('canChat', true);
-    });
-
-    model.on('channel.closed', function () {
-      controller.set('canChat', false);
-    });
-
-    model.on('channel.message', function () {
-      App.getAttention();
-    });
-
     model.on('stream.added', function (stream) {
       controller.set('remoteStream', stream);
     });
@@ -758,6 +757,15 @@ var ChatRoute = Ember.Route.extend({
     model.on('stream.removed', function () {
       controller.set('remoteStream', null);
     });
+
+    if (model.get('isOnline') && !model.get('connected')) {
+      // Automatically try to establish a text connection
+      App.getUserMedia(false, false, function (stream) {
+        model.set('localMediaType', 'text');
+        model.setOutgoingStream(stream);
+        model.prepareCall();
+      });
+    }
 
     controller.set('content', model);
   }

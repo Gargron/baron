@@ -8,6 +8,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
   localMediaType: 'text',
   remoteMediaType: 'text',
   connected: false,
+  hasChannel: false,
   waiting: false,
   messages: [],
 
@@ -89,6 +90,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
     };
 
     this.set('peer', connection);
+    this.set('messages', []);
   },
 
   _bindDataEvents: function (channel) {
@@ -96,11 +98,12 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     channel.onopen = function () {
       console.log('Channel opened', channel);
+      self.set('hasChannel', true);
       self.trigger('channel.opened');
     };
 
     channel.onmessage = function (e) {
-      console.log('Message received', e);
+      console.log('Message received', self, e);
 
       if (e.data instanceof Blob) {
         self.trigger('channel.file', e.data);
@@ -113,6 +116,7 @@ var Contact = Ember.Object.extend(Ember.Evented, {
 
     channel.onclose = function () {
       console.log('Channel closed', channel);
+      self.set('hasChannel', false);
       self.closeCall();
       self.trigger('channel.closed');
     };

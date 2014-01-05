@@ -9,6 +9,10 @@ var ContactsController = Ember.ArrayController.extend({
 
     contact.set('signalingChannel', this.get('controllers.application.connection'));
 
+    contact.on('channel.message', function () {
+      App.getAttention();
+    });
+
     contact.on('connection.incoming', function (accept) {
       var stopAttention, request;
 
@@ -17,8 +21,12 @@ var ContactsController = Ember.ArrayController.extend({
         // We should reset our own offer, and just answer this one
         contact.get('peer').close();
         contact.init();
-        accept(contact.get('peer')); // Overwriting connection object with the new one
-        return;
+        return accept(contact.get('peer')); // Overwriting connection object with the new one
+      }
+
+      if (contact.get('remoteMediaType') === 'text') {
+        // Automatically accept incoming text connections
+        return accept();
       }
 
       stopAttention = App.getOverlyAttachedAttention();

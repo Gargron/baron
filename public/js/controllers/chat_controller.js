@@ -1,7 +1,6 @@
 var ChatController = Ember.ObjectController.extend({
   needs: ['application', 'calls'],
   newMessage: null,
-  canChat: false,
   remoteStream: null,
 
   hasMedia: function () {
@@ -12,8 +11,8 @@ var ChatController = Ember.ObjectController.extend({
   }.property('remoteStream', 'content.localStream', 'content.localMediaType', 'content.remoteMediaType'),
 
   cannotChat: function () {
-    return !this.get('canChat');
-  }.property('canChat'),
+    return !this.get('content.hasChannel');
+  }.property('content.hasChannel'),
 
   isReceivingCall: function () {
     var self = this;
